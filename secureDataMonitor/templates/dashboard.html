@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Sécurité — SecureDataMonitor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+    }
+
+    .severity-bar {
+        height: 8px;
+        border-radius: 4px;
+    }
+
+    #ws-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #DC2626;
+        display: inline-block;
+    }
+
+    #ws-dot.connected {
+        background: #16A34A;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: .4
+        }
+    }
+
+    .event-row:hover {
+        background: #F8FAFC;
+    }
+
+    .alert-feed {
+        max-height: 320px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+
+        <!-- SIDEBAR -->
+        <div class="col-auto sidebar py-3" style="width:220px;">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/admin/dashboard"><i class="bi bi-graph-up me-2"></i>Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/"><i class="bi bi-house me-2"></i>Vue admin</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/alerts"><i class="bi bi-bell me-2"></i>Alertes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/events"><i class="bi bi-list-ul me-2"></i>Événements</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/users"><i class="bi bi-people me-2"></i>Utilisateurs</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/data/accounts"><i class="bi bi-credit-card me-2"></i>Comptes</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- MAIN -->
+        <div class="col main-content">
+
+            <!-- Header -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h4 class="fw-bold mb-0" style="color:#1A3A5C;">
+                        <i class="bi bi-shield-check me-2"></i>Tableau de bord sécurité
+                    </h4>
+                    <p class="text-muted small mb-0">SecureDataMonitor — temps réel</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="ws-dot"></span>
+                    <span id="ws-status" class="small text-muted">Connexion WebSocket...</span>
+                </div>
+            </div>
+
+            <!-- STATS CARDS -->
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background:#EBF4F8;">
+                                <i class="bi bi-activity" style="color:#1A3A5C;"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted small mb-0">Total événements</p>
+                                <h4 class="fw-bold mb-0" id="stat-total-events">{{ severity_data.values()|sum }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background:#FEF3C7;">
+                                <i class="bi bi-bell-fill" style="color:#D97706;"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted small mb-0">Alertes actives</p>
+                                <h4 class="fw-bold mb-0" id="stat-unresolved">
+                                    {{ alerts | selectattr('resolved','equalto',false) | list | length }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background:#FEE2E2;">
+                                <i class="bi bi-shield-x" style="color:#DC2626;"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted small mb-0">Severity HIGH+</p>
+                                <h4 class="fw-bold mb-0" style="color:#DC2626;">
+                                    {{ (severity_data.get('HIGH',0) + severity_data.get('CRITICAL',0)) }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background:#EDE9FE;">
+                                <i class="bi bi-lightning-fill" style="color:#7C3AED;"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted small mb-0">CRITICAL</p>
+                                <h4 class="fw-bold mb-0" style="color:#7C3AED;">
+                                    {{ severity_data.get('CRITICAL',0) }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <!-- GRAPHE FRÉQUENCE -->
+                <div class="col-xl-8">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3" style="color:#1A3A5C;">
+                                <i class="bi bi-bar-chart me-2"></i>Fréquence événements (24h)
+                            </h6>
+                            <canvas id="eventsChart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEVERITY BREAKDOWN -->
+                <div class="col-xl-4">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3" style="color:#1A3A5C;">Répartition severity</h6>
+                            {% set total_sev = severity_data.values()|sum or 1 %}
+                            {% for level, color in
+                            [('LOW','#16A34A'),('MEDIUM','#D97706'),('HIGH','#DC2626'),('CRITICAL','#7C3AED')] %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="fw-semibold">{{ level }}</span>
+                                    <span>{{ severity_data.get(level, 0) }}</span>
+                                </div>
+                                <div class="progress" style="height:8px;border-radius:4px;">
+                                    <div class="progress-bar severity-bar"
+                                        style="background:{{ color }};width:{{ (severity_data.get(level,0)/total_sev*100)|round }}%;"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALERTES TEMPS RÉEL -->
+                <div class="col-xl-6">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3" style="color:#1A3A5C;">
+                                <i class="bi bi-bell me-2"></i>Dernières alertes
+                                <span class="badge bg-danger ms-1" id="alert-count">{{ alerts|length }}</span>
+                            </h6>
+                            <div class="alert-feed" id="alert-feed">
+                                {% for a in alerts %}
+                                <div class="d-flex align-items-start gap-2 mb-2 p-2 rounded"
+                                    style="background:#F8FAFC;">
+                                    <span class="badge badge-{{ a.alert_level.value }} text-white mt-1"
+                                        style="min-width:72px;">
+                                        {{ a.alert_level.value }}
+                                    </span>
+                                    <div>
+                                        <p class="small mb-0">{{ a.message[:80] }}</p>
+                                        <small class="text-muted">{{ a.timestamp.strftime('%H:%M:%S') }}</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <p class="text-muted small text-center py-3">Aucune alerte active</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DERNIERS ÉVÉNEMENTS -->
+                <div class="col-xl-6">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3" style="color:#1A3A5C;">
+                                <i class="bi bi-list-ul me-2"></i>Derniers événements
+                            </h6>
+                            <div class="alert-feed">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="small">Type</th>
+                                            <th class="small">IP</th>
+                                            <th class="small">Heure</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="events-feed">
+                                        {% for e in events %}
+                                        <tr class="event-row">
+                                            <td><span class="badge badge-{{ e.severity.value }} text-white">{{
+                                                    e.event_type.value[:14] }}</span></td>
+                                            <td class="small text-muted">{{ e.ip_address }}</td>
+                                            <td class="small text-muted">{{ e.timestamp.strftime('%H:%M:%S') }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="/static/monitor/js/ws_alerts.js"></script>
+<script id="events-data" type="application/json">{{ events_by_hour | tojson }}</script>
+<script>
+    // @ts-nocheck
+    // Graphe fréquence événements
+    const eventsData = JSON.parse(document.getElementById('events-data').textContent);
+    const labels = eventsData.map(d => d.hour.substring(11, 16));
+    const counts = eventsData.map(d => d.count);
+
+    new Chart(document.getElementById('eventsChart'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Événements',
+                data: counts,
+                backgroundColor: '#2E86AB',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+
+    // WebSocket
+    initWS("{{ ws_url }}");
+</script>
+{% endblock %}
