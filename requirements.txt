@@ -1,0 +1,40 @@
+# ============================================================
+# XUD-BANK — SecureDataMonitor
+# Dépendances Python
+# Université de Kara – FAST-LPSIC S6 | 2025-2026
+# ============================================================
+
+# ── Web Framework ─────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1          # Serveur ASGI + WebSocket support
+
+# ── Base de données ───────────────────────────────────────────
+sqlalchemy==2.0.36                 # ORM async
+asyncpg==0.30.0                    # Driver async PostgreSQL (Supabase)
+alembic==1.14.0                    # Migrations BDD (optionnel mais recommandé)
+
+# ── Templating ────────────────────────────────────────────────
+jinja2==3.1.4                      # Rendu HTML server-side
+python-multipart==0.0.20           # Parsing formulaires HTML (login, register)
+
+# ── Sécurité & Auth ───────────────────────────────────────────
+passlib[bcrypt]==1.7.4             # Hash bcrypt des mots de passe
+itsdangerous==2.2.0                # Signature sécurisée des cookies de session
+python-jose[cryptography]==3.3.0   # JWT (tokens session)
+
+# ── Variables d'environnement ─────────────────────────────────
+python-dotenv==1.0.1               # Chargement du fichier .env
+
+# ── WebSocket ─────────────────────────────────────────────────
+websockets==13.1                   # Support WebSocket (alertes temps réel)
+
+# ── Validation des données ────────────────────────────────────
+pydantic==2.10.3                   # Validation schemas (intégré FastAPI)
+pydantic-settings==2.7.0           # Settings depuis .env via Pydantic
+
+# ── Logging ───────────────────────────────────────────────────
+# logging → stdlib Python, pas de dépendance externe
+
+# ── Utilitaires ───────────────────────────────────────────────
+httpx==0.28.1                      # Client HTTP async (tests, webhooks)
+python-dateutil==2.9.0             # Manipulation dates (règles temporelles)
