@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     """
 
     # ── Application ───────────────────────────────────────────
-    APP_NAME: str = "XUD-Bank SecureDataMonitor"
+    APP_NAME: str = "xud-bank"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 
