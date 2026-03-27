@@ -38,3 +38,5 @@ pydantic-settings==2.7.0           # Settings depuis .env via Pydantic
 # ── Utilitaires ───────────────────────────────────────────────
 httpx==0.28.1                      # Client HTTP async (tests, webhooks)
 python-dateutil==2.9.0             # Manipulation dates (règles temporelles)
+
+greenlet==3.2.4

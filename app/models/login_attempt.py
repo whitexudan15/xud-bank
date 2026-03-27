@@ -6,7 +6,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime, INET
+from sqlalchemy import String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, INET as PGINET
 from app.database import Base
