@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs — Admin{% endblock %}
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-auto sidebar py-3" style="width:220px;">
+            <ul class="nav flex-column">
+                <li class="nav-item"><a class="nav-link" href="/admin/"><i class="bi bi-house me-2"></i>Vue admin</a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i
+                            class="bi bi-graph-up me-2"></i>Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/alerts"><i class="bi bi-bell me-2"></i>Alertes</a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="/admin/events"><i
+                            class="bi bi-list-ul me-2"></i>Événements</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/admin/users"><i
+                            class="bi bi-people me-2"></i>Utilisateurs</a></li>
+            </ul>
+        </div>
+        <div class="col main-content">
+            <h4 class="fw-bold mb-1" style="color:#1A3A5C;"><i class="bi bi-people me-2"></i>Gestion des utilisateurs
+            </h4>
+            <p class="text-muted small mb-4">{{ users|length }} utilisateur(s) enregistré(s)</p>
+            <div class="card card-stat">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead style="background:#EBF4F8;">
+                            <tr>
+                                <th class="ps-3">Utilisateur</th>
+                                <th>Email</th>
+                                <th>Rôle</th>
+                                <th>Échecs</th>
+                                <th>Statut</th>
+                                <th>Créé le</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td class="ps-3 fw-semibold">{{ u.username }}</td>
+                                <td class="text-muted small">{{ u.email }}</td>
+                                <td>
+                                    <span
+                                        class="badge {% if u.role.value=='admin' %}bg-danger{% elif u.role.value=='analyste' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                        {{ u.role.value }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="{% if u.failed_attempts >= 3 %}text-danger fw-bold{% endif %}">{{
+                                        u.failed_attempts }}</span>
+                                </td>
+                                <td>
+                                    {% if u.is_locked %}
+                                    <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Verrouillé</span>
+                                    {% else %}
+                                    <span class="badge bg-success"><i class="bi bi-unlock-fill me-1"></i>Actif</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if u.is_locked %}
+                                    <form method="post" action="/admin/users/{{ u.username }}/unlock" class="d-inline">
+                                        <button class="btn btn-sm btn-outline-success py-0">Déverrouiller</button>
+                                    </form>
+                                    {% else %}
+                                    <form method="post" action="/admin/users/{{ u.username }}/lock" class="d-inline">
+                                        <button class="btn btn-sm btn-outline-danger py-0">Verrouiller</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
