@@ -6,10 +6,11 @@
 
 import logging
 from contextlib import asynccontextmanager
+from jinja2 import FileSystemLoader, Environment
 from fastapi import FastAPI, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from starlette.templating import Jinja2Templates
 
 from app.config import get_settings
 from app.database import check_db_connection, close_db
@@ -19,6 +20,17 @@ from secureDataMonitor.services.logger import setup_file_logger
 settings = get_settings()
 log = logging.getLogger("xud_bank")
 
+# ── Loader Jinja2 combiné (app + secureDataMonitor) ───────────
+jinja_env = Environment(
+    loader=FileSystemLoader([
+        "app/templates",
+        "secureDataMonitor/templates",
+    ]),
+    autoescape=True,
+)
+templates_app     = Jinja2Templates(env=jinja_env)
+templates_monitor = Jinja2Templates(env=jinja_env)
+
 
 # ════════════════════════════════════════════════════════════
 # LIFESPAN — Démarrage & Arrêt
@@ -26,20 +38,11 @@ log = logging.getLogger("xud_bank")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Exécuté au démarrage et à l'arrêt de l'application.
-    Ordre de démarrage :
-      1. Logger fichier
-      2. Vérification connexion BDD
-      3. Enregistrement des handlers événementiels
-    """
-    # ── Démarrage ─────────────────────────────────────────────
     setup_file_logger()
     log.info("=" * 60)
     log.info(f"  {settings.APP_NAME} v{settings.APP_VERSION}")
     log.info("=" * 60)
 
-    # Vérification BDD
     try:
         await check_db_connection()
         log.info("✓ Connexion PostgreSQL (Supabase) établie")
@@ -47,14 +50,12 @@ async def lifespan(app: FastAPI):
         log.critical(f"✗ Connexion BDD impossible : {e}")
         raise
 
-    # Enregistrement des handlers événementiels
     register_all_handlers()
     log.info("✓ Handlers SecureDataMonitor enregistrés")
     log.info("✓ Application démarrée — en écoute...")
 
     yield
 
-    # ── Arrêt ─────────────────────────────────────────────────
     await close_db()
     log.info("✓ Pool de connexions BDD fermé proprement")
 
@@ -68,7 +69,7 @@ app = FastAPI(
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan,
-    docs_url="/api/docs" if settings.DEBUG else None,   # Swagger désactivé en prod
+    docs_url="/api/docs" if settings.DEBUG else None,
     redoc_url=None,
 )
 
@@ -77,27 +78,16 @@ app = FastAPI(
 # FICHIERS STATIQUES
 # ════════════════════════════════════════════════════════════
 
-app.mount("/static/app", StaticFiles(directory="app/static"), name="static_app")
+app.mount("/static/app",     StaticFiles(directory="app/static"),              name="static_app")
 app.mount("/static/monitor", StaticFiles(directory="secureDataMonitor/static"), name="static_monitor")
-
-
-# ════════════════════════════════════════════════════════════
-# TEMPLATES
-# ════════════════════════════════════════════════════════════
-
-templates_app     = Jinja2Templates(directory="app/templates")
-templates_monitor = Jinja2Templates(directory="secureDataMonitor/templates")
 
 
 # ════════════════════════════════════════════════════════════
 # ROUTERS
 # ════════════════════════════════════════════════════════════
 
-# App bancaire
 from app.routers.auth import router as auth_router
 from app.routers.data import router as data_router
-
-# SecureDataMonitor
 from secureDataMonitor.routers.admin import router as admin_router
 from secureDataMonitor.routers.api_alerts import router as alerts_router
 
@@ -113,13 +103,11 @@ app.include_router(alerts_router)
 
 @app.get("/", include_in_schema=False)
 async def root():
-    """Redirige vers login."""
     return RedirectResponse(url="/auth/login", status_code=302)
 
 
 @app.get("/health", include_in_schema=False)
 async def health():
-    """Endpoint de santé pour Render.com."""
     try:
         await check_db_connection()
         return {"status": "ok", "db": "connected"}
@@ -133,10 +121,7 @@ async def health():
 
 @app.exception_handler(403)
 async def forbidden_handler(request: Request, exc):
-    """Page 403 personnalisée + émission événement."""
-    from app.config import get_settings
     from secureDataMonitor.events.dispatcher import dispatcher
-
     try:
         token = request.cookies.get(settings.SESSION_COOKIE_NAME)
         from app.services.auth_service import decode_session_token
@@ -146,7 +131,6 @@ async def forbidden_handler(request: Request, exc):
     except Exception:
         username, role = None, "anonymous"
 
-    # Émet unauthorized si l'URL cible /admin
     if request.url.path.startswith("/admin"):
         await dispatcher.emit("unauthorized", {
             "ip": request.client.host,
@@ -164,7 +148,6 @@ async def forbidden_handler(request: Request, exc):
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
-    """Page 404 personnalisée + détection URL suspecte."""
     from secureDataMonitor.services.detection import check_suspicious_url
     from secureDataMonitor.events.dispatcher import dispatcher
 
@@ -194,25 +177,19 @@ async def server_error_handler(request: Request, exc):
 
 
 # ════════════════════════════════════════════════════════════
-# MIDDLEWARE — Détection URL suspecte sur toutes les requêtes
+# MIDDLEWARE — Sécurité globale
 # ════════════════════════════════════════════════════════════
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 class SecurityMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware global :
-    - Détecte les URL suspectes sur toutes les routes
-    - Ajoute les headers de sécurité sur toutes les réponses
-    """
     async def dispatch(self, request: Request, call_next) -> Response:
         from secureDataMonitor.services.detection import check_suspicious_url
         from secureDataMonitor.events.dispatcher import dispatcher
 
         path = request.url.path
 
-        # Vérifie l'URL
         if check_suspicious_url(path):
             await dispatcher.emit("suspicious_url", {
                 "ip": request.client.host,
@@ -227,7 +204,6 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
 
-        # Headers de sécurité
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"

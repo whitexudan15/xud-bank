@@ -47,10 +47,10 @@ class SecurityEvent(Base):
     timestamp    : Mapped[datetime]          = mapped_column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
     username     : Mapped[str | None]        = mapped_column(String(50), nullable=True)
     ip_address   : Mapped[str]              = mapped_column(PGINET, nullable=False)
-    event_type   : Mapped[EventType]         = mapped_column(SAEnum(EventType), nullable=False)
-    severity     : Mapped[SeverityLevel]     = mapped_column(SAEnum(SeverityLevel), nullable=False)
+    event_type   : Mapped[EventType]         = mapped_column(SAEnum(EventType, name="event_type", create_type=False), nullable=False)
+    severity     : Mapped[SeverityLevel]     = mapped_column(SAEnum(SeverityLevel, name="severity_level", create_type=False), nullable=False)
     description  : Mapped[str]              = mapped_column(Text, nullable=False)
-    status       : Mapped[EventStatus]       = mapped_column(SAEnum(EventStatus), nullable=False, default=EventStatus.open)
+    status       : Mapped[EventStatus]       = mapped_column(SAEnum(EventStatus, name="event_status", create_type=False), nullable=False, default=EventStatus.open)
     action_taken : Mapped[str | None]        = mapped_column(Text, nullable=True)
 
     def __repr__(self) -> str:

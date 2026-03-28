@@ -214,9 +214,28 @@ async def register(
 
     except Exception as e:
         await db.rollback()
-        log.error(f"Erreur création compte {username} : {e}")
+        error_str = str(e).lower()
+        log.error(f"Erreur création compte '{username}' : {type(e).__name__}: {e}")
+
+        # Contrainte unicité PostgreSQL (asyncpg.UniqueViolationError ou IntegrityError)
+        if "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
+            return templates.TemplateResponse(
+                "register.html",
+                {"request": request, "error": "Ce nom d'utilisateur ou email est déjà pris."},
+                status_code=400,
+            )
+
+        # Erreur de connexion BDD
+        if "network" in error_str or "unreachable" in error_str or "connect" in error_str or "timeout" in error_str:
+            return templates.TemplateResponse(
+                "register.html",
+                {"request": request, "error": "Service temporairement indisponible. Réessayez dans quelques instants."},
+                status_code=503,
+            )
+
+        # Toute autre erreur inattendue
         return templates.TemplateResponse(
             "register.html",
-            {"request": request, "error": "Ce nom d'utilisateur ou email est déjà pris."},
-            status_code=400,
+            {"request": request, "error": "Une erreur est survenue. Veuillez réessayer."},
+            status_code=500,
         )

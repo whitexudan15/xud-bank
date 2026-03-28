@@ -25,7 +25,7 @@ class User(Base):
     username        : Mapped[str]               = mapped_column(String(50),  unique=True, nullable=False)
     email           : Mapped[str]               = mapped_column(String(100), unique=True, nullable=False)
     password_hash   : Mapped[str]               = mapped_column(String(255), nullable=False)
-    role            : Mapped[UserRole]          = mapped_column(SAEnum(UserRole), nullable=False, default=UserRole.utilisateur)
+    role            : Mapped[UserRole]          = mapped_column(SAEnum(UserRole, name="user_role", create_type=False), nullable=False, default=UserRole.utilisateur)
     is_locked       : Mapped[bool]              = mapped_column(Boolean, nullable=False, default=False)
     failed_attempts : Mapped[int]               = mapped_column(Integer, nullable=False, default=0)
     last_failed_at  : Mapped[datetime | None]   = mapped_column(DateTime(timezone=False), nullable=True)

@@ -17,7 +17,7 @@ class Alert(Base):
 
     id              : Mapped[uuid.UUID]      = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     timestamp       : Mapped[datetime]       = mapped_column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
-    alert_level     : Mapped[SeverityLevel]  = mapped_column(SAEnum(SeverityLevel), nullable=False)
+    alert_level     : Mapped[SeverityLevel]  = mapped_column(SAEnum(SeverityLevel, name="severity_level", create_type=False), nullable=False)
     source_event_id : Mapped[uuid.UUID]      = mapped_column(UUID(as_uuid=True), ForeignKey("security_events.id", ondelete="CASCADE"), nullable=False)
     message         : Mapped[str]           = mapped_column(Text, nullable=False)
     resolved        : Mapped[bool]           = mapped_column(Boolean, nullable=False, default=False)

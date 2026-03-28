@@ -27,7 +27,7 @@ class BankAccount(Base):
     titulaire      : Mapped[str]                     = mapped_column(String(100), nullable=False)
     solde          : Mapped[Decimal]                 = mapped_column(Numeric(15, 2), nullable=False, default=Decimal("0.00"))
     historique     : Mapped[str | None]              = mapped_column(Text, nullable=True)   # JSON sérialisé
-    classification : Mapped[AccountClassification]   = mapped_column(SAEnum(AccountClassification), nullable=False, default=AccountClassification.confidentiel)
+    classification : Mapped[AccountClassification]   = mapped_column(SAEnum(AccountClassification, name="account_classification", create_type=False), nullable=False, default=AccountClassification.confidentiel)
     owner_id       : Mapped[uuid.UUID]               = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at     : Mapped[datetime]                = mapped_column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
 
