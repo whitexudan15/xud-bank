@@ -1,60 +1,281 @@
 {% extends "base.html" %}
-{% block title %}Inscription — XUD-Bank{% endblock %}
+{% block title %}Inscription — X{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        overflow: hidden !important;
+    }
+
+    .reg-scene {
+        position: fixed;
+        top: var(--nav-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        overflow: hidden;
+    }
+
+    .reg-form-col {
+        background: var(--bg-glass);
+        backdrop-filter: blur(24px);
+        border-right: 1px solid var(--bdr2);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 2.8rem 2.5rem;
+        overflow-y: auto;
+    }
+
+    .reg-hero-col {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+
+    .reg-hero-col::before {
+        content: '';
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 1px solid rgba(180, 255, 69, .06);
+        animation: regPulse 8s ease-in-out infinite;
+    }
+
+    .reg-hero-col::after {
+        content: '';
+        position: absolute;
+        width: 350px;
+        height: 350px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 1px solid rgba(180, 255, 69, .1);
+        animation: regPulse 8s ease-in-out .8s infinite;
+    }
+
+    @keyframes regPulse {
+
+        0%,
+        100% {
+            opacity: .4;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        50% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.06);
+        }
+    }
+
+    .reg-icon-big {
+        font-size: 5rem;
+        color: var(--lime);
+        position: relative;
+        z-index: 1;
+        margin-bottom: 1.5rem;
+        animation: float 5s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-12px);
+        }
+    }
+
+    .reg-tagline {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--t1);
+        margin-bottom: .6rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .reg-tagline em {
+        font-style: normal;
+        background: linear-gradient(90deg, var(--lime), var(--teal));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .reg-desc {
+        font-size: .9rem;
+        color: var(--t2);
+        max-width: 320px;
+        line-height: 1.7;
+        position: relative;
+        z-index: 1;
+    }
+
+    .reg-perks {
+        display: flex;
+        flex-direction: column;
+        gap: .65rem;
+        margin-top: 2rem;
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .perk {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        background: var(--bg-glass);
+        border: 1px solid var(--bdr2);
+        border-radius: 10px;
+        padding: .6rem 1rem;
+        backdrop-filter: blur(8px);
+        font-size: .82rem;
+        color: var(--t1);
+        font-weight: 500;
+        text-align: left;
+    }
+
+    .perk i {
+        color: var(--lime);
+        font-size: .9rem;
+        flex-shrink: 0;
+    }
+
+    .xalert-err {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        background: rgba(255, 69, 96, .08);
+        border: 1px solid rgba(255, 69, 96, .2);
+        border-radius: 10px;
+        padding: .65rem .9rem;
+        margin-bottom: 1.1rem;
+        font-size: .83rem;
+        color: var(--s-hi);
+    }
+
+    .pwd-wrap {
+        position: relative;
+    }
+
+    .pwd-wrap .xinput {
+        padding-right: 2.8rem !important;
+    }
+
+    @media(max-width:900px) {
+        .reg-scene {
+            grid-template-columns: 1fr;
+        }
+
+        .reg-hero-col {
+            display: none;
+        }
+
+        .reg-form-col {
+            padding: 2rem 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block body %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center"
-    style="background:linear-gradient(135deg,#1A3A5C 0%,#2E86AB 100%);">
-    <div class="card shadow-lg" style="width:440px;border-radius:16px;border:none;">
-        <div class="card-body p-5">
-            <div class="text-center mb-4">
-                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
-                    style="width:64px;height:64px;background:#EBF4F8;">
-                    <i class="bi bi-person-plus-fill fs-2" style="color:#1A3A5C;"></i>
-                </div>
-                <h4 class="fw-bold mb-0" style="color:#1A3A5C;">Créer un compte</h4>
-                <p class="text-muted small">Accès client XUD-Bank</p>
+<div class="reg-scene">
+
+    <!-- ══ FORM col ═══════════════════════════════════════════════════ -->
+    <div class="reg-form-col">
+
+        <div style="width:52px;height:52px;background:var(--lime);border-radius:14px;
+                    display:flex;align-items:center;justify-content:center;
+                    font-family:'Syne',sans-serif;font-weight:900;font-size:1.3rem;
+                    color:var(--t-inv);margin-bottom:1.6rem;
+                    box-shadow:0 6px 24px rgba(180,255,69,.3);">X</div>
+
+        <h2 style="font-size:1.4rem;margin-bottom:.2rem;">Créer un compte</h2>
+        <p style="font-size:.82rem;color:var(--t2);margin-bottom:1.8rem;">
+            Accès client XUD-Bank — sécurisé et confidentiel
+        </p>
+
+        {% if error %}
+        <div class="xalert-err">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/auth/register" novalidate>
+
+            <div class="xfield">
+                <label>Nom d'utilisateur</label>
+                <i class="bi bi-person fi"></i>
+                <input type="text" name="username" class="xinput" placeholder="jean.dupont" required />
             </div>
 
-            {% if error %}
-            <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                <span class="small">{{ error }}</span>
+            <div class="xfield">
+                <label>Adresse e-mail</label>
+                <i class="bi bi-envelope fi"></i>
+                <input type="email" name="email" class="xinput" placeholder="jean@mail.com" required />
             </div>
-            {% endif %}
 
-            <form method="post" action="/auth/register" novalidate>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small">Nom d'utilisateur</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-person"></i></span>
-                        <input type="text" name="username" class="form-control" placeholder="jean.dupont" required />
-                    </div>
+            <div class="xfield">
+                <label>Mot de passe</label>
+                <div class="pwd-wrap">
+                    <i class="bi bi-lock fi" style="z-index:2;"></i>
+                    <input type="password" name="password" class="xinput" placeholder="••••••••" required />
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small">Email</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input type="email" name="email" class="form-control" placeholder="jean@mail.com" required />
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold small">Mot de passe</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input type="password" name="password" class="form-control" placeholder="••••••••" required />
-                    </div>
-                </div>
-                <button type="submit" class="btn w-100 text-white fw-semibold"
-                    style="background:#1A3A5C;border-radius:8px;">
-                    <i class="bi bi-person-check me-2"></i>Créer mon compte
-                </button>
-            </form>
+            </div>
 
-            <hr class="my-4" />
-            <p class="text-center text-muted small mb-0">
-                Déjà un compte ?
-                <a href="/auth/login" class="fw-semibold" style="color:#2E86AB;">Se connecter</a>
-            </p>
+            <div style="display:flex;align-items:flex-start;gap:.6rem;
+                        background:rgba(180,255,69,.04);border:1px solid var(--bdr);
+                        border-radius:10px;padding:.7rem .9rem;margin-bottom:1.2rem;font-size:.76rem;color:var(--t2);">
+                <i class="bi bi-shield-lock-fill" style="color:var(--lime);margin-top:.1rem;flex-shrink:0;"></i>
+                <span>Vos données sont chiffrées. XUD-Bank ne partage jamais vos informations personnelles.</span>
+            </div>
+
+            <button type="submit" class="btn-lime">
+                <i class="bi bi-person-check"></i>Créer mon compte
+            </button>
+        </form>
+
+        <p style="text-align:center;font-size:.82rem;color:var(--t2);margin-top:1.2rem;">
+            Déjà un compte ?
+            <a href="/auth/login" style="color:var(--lime);font-weight:700;text-decoration:none;">
+                Se connecter
+            </a>
+        </p>
+    </div>
+
+    <!-- ══ HERO col ═══════════════════════════════════════════════════ -->
+    <div class="reg-hero-col">
+        <div class="reg-icon-big"><i class="bi bi-bank2"></i></div>
+        <div class="reg-tagline">Votre avenir<br><em>commence ici</em></div>
+        <p class="reg-desc">
+            Rejoignez des milliers de clients qui font confiance à XUD-Bank
+            pour gérer leur patrimoine en toute sécurité.
+        </p>
+        <div class="reg-perks">
+            <div class="perk stagger"><i class="bi bi-lightning-fill"></i>Virements instantanés 24/7</div>
+            <div class="perk stagger"><i class="bi bi-shield-check-fill"></i>Chiffrement 256-bit bout-en-bout</div>
+            <div class="perk stagger"><i class="bi bi-graph-up-arrow"></i>Analyse intelligente de vos dépenses</div>
+            <div class="perk stagger"><i class="bi bi-bell-fill"></i>Alertes fraude en temps réel</div>
         </div>
     </div>
 </div>

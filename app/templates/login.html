@@ -1,70 +1,553 @@
 {% extends "base.html" %}
-{% block title %}Connexion — XUD-Bank{% endblock %}
+{% block title %}Connexion — X{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Override body overflow for landing only */
+    body {
+        overflow: hidden !important;
+    }
+
+    .landing {
+        position: fixed;
+        top: var(--nav-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        overflow: hidden;
+    }
+
+    /* ── LEFT: Hero ─────────────────────────────────────────────────────── */
+    .hero-side {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 3rem 4rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-side::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, var(--lime-b), transparent);
+    }
+
+    .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: .55rem;
+        background: var(--lime-dim);
+        border: 1px solid var(--lime-b);
+        border-radius: 30px;
+        padding: .35rem .85rem;
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--lime);
+        width: fit-content;
+        margin-bottom: 1.6rem;
+        animation: fadeSlideUp .5s var(--ease) both;
+    }
+
+    .hero-tag i {
+        font-size: .75rem;
+    }
+
+    .hero-title {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: clamp(2.4rem, 5vw, 3.8rem);
+        line-height: 1.05;
+        color: var(--t1);
+        margin-bottom: 1.1rem;
+        animation: fadeSlideUp .5s var(--ease) .1s both;
+    }
+
+    .hero-title em {
+        font-style: normal;
+        background: linear-gradient(90deg, var(--lime), var(--teal));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-sub {
+        font-size: 1rem;
+        color: var(--t2);
+        max-width: 440px;
+        line-height: 1.7;
+        margin-bottom: 2rem;
+        animation: fadeSlideUp .5s var(--ease) .18s both;
+    }
+
+    .hero-ctas {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+        flex-wrap: wrap;
+        animation: fadeSlideUp .5s var(--ease) .26s both;
+    }
+
+    .hero-btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        background: var(--lime);
+        color: var(--t-inv);
+        border-radius: 10px;
+        padding: .78rem 1.7rem;
+        font-family: 'Syne', sans-serif;
+        font-size: .9rem;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 6px 28px rgba(180, 255, 69, .32);
+        transition: all .22s var(--ease);
+        letter-spacing: .2px;
+    }
+
+    .hero-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 36px rgba(180, 255, 69, .45);
+        color: var(--t-inv);
+    }
+
+    .hero-btn-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        background: transparent;
+        color: var(--t1);
+        border: 1.5px solid var(--bdr2);
+        border-radius: 10px;
+        padding: .76rem 1.5rem;
+        font-size: .9rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all .22s var(--ease);
+    }
+
+    .hero-btn-outline:hover {
+        border-color: var(--lime-b);
+        background: var(--lime-dim);
+        color: var(--lime);
+    }
+
+    /* Stats row */
+    .hero-stats {
+        display: flex;
+        gap: 2.5rem;
+        margin-top: 2.5rem;
+        animation: fadeSlideUp .5s var(--ease) .34s both;
+    }
+
+    .hstat-val {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: var(--t1);
+        line-height: 1;
+    }
+
+    .hstat-val span {
+        color: var(--lime);
+    }
+
+    .hstat-lbl {
+        font-size: .72rem;
+        color: var(--t2);
+        margin-top: .25rem;
+        font-weight: 500;
+    }
+
+    /* Floating account card */
+    .hero-card {
+        position: absolute;
+        bottom: 3rem;
+        right: 2.5rem;
+        width: 260px;
+        background: var(--bg-glass);
+        border: 1px solid rgba(180, 255, 69, .18);
+        border-radius: 16px;
+        padding: 1.3rem;
+        backdrop-filter: blur(20px);
+        box-shadow: var(--sh-card), var(--sh-lime);
+        animation: cardFloat 6s ease-in-out infinite, fadeSlideUp .6s var(--ease) .4s both;
+    }
+
+    @keyframes cardFloat {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-8px);
+        }
+    }
+
+    .hcard-label {
+        font-size: .64rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--t3);
+        margin-bottom: .3rem;
+        font-family: 'Syne', sans-serif;
+    }
+
+    .hcard-val {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--lime);
+        margin-bottom: 1rem;
+    }
+
+    .hcard-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: .8rem;
+    }
+
+    .hcard-stat-v {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--teal);
+    }
+
+    .hcard-security {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .55rem .75rem;
+        background: rgba(16, 185, 129, .08);
+        border: 1px solid rgba(16, 185, 129, .18);
+        border-radius: 8px;
+        font-size: .75rem;
+        color: var(--s-low);
+        font-weight: 600;
+    }
+
+    /* Features strip */
+    .hero-features {
+        position: absolute;
+        bottom: 1.8rem;
+        left: 4rem;
+        display: flex;
+        gap: 1.5rem;
+        animation: fadeSlideUp .5s var(--ease) .42s both;
+    }
+
+    .feat-pill {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        font-size: .76rem;
+        color: var(--t2);
+        font-weight: 500;
+    }
+
+    .feat-pill i {
+        color: var(--lime);
+        font-size: .82rem;
+    }
+
+    /* ── RIGHT: Login form ──────────────────────────────────────────────── */
+    .form-side {
+        background: var(--bg-glass);
+        backdrop-filter: blur(24px);
+        border-left: 1px solid var(--bdr2);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 2.8rem 2.5rem;
+        overflow-y: auto;
+    }
+
+    .form-logo {
+        width: 52px;
+        height: 52px;
+        background: var(--lime);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Syne', sans-serif;
+        font-weight: 900;
+        font-size: 1.3rem;
+        color: var(--t-inv);
+        margin-bottom: 1.6rem;
+        box-shadow: 0 6px 24px rgba(180, 255, 69, .3);
+    }
+
+    .form-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: var(--t1);
+        margin-bottom: .25rem;
+    }
+
+    .form-sub {
+        font-size: .82rem;
+        color: var(--t2);
+        margin-bottom: 1.8rem;
+    }
+
+    /* Alerts */
+    .xalert-err {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        background: rgba(255, 69, 96, .08);
+        border: 1px solid rgba(255, 69, 96, .2);
+        border-radius: 10px;
+        padding: .65rem .9rem;
+        margin-bottom: 1.1rem;
+        font-size: .83rem;
+        color: var(--s-hi);
+    }
+
+    .xalert-ok {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        background: rgba(16, 185, 129, .08);
+        border: 1px solid rgba(16, 185, 129, .18);
+        border-radius: 10px;
+        padding: .65rem .9rem;
+        margin-bottom: 1.1rem;
+        font-size: .83rem;
+        color: var(--s-low);
+    }
+
+    /* Trust strip */
+    .trust-strip {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1.6rem;
+        padding-top: 1.2rem;
+        border-top: 1px solid var(--bdr2);
+    }
+
+    .trust-item {
+        text-align: center;
+    }
+
+    .trust-val {
+        font-family: 'Syne', sans-serif;
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--lime);
+    }
+
+    .trust-lbl {
+        font-size: .62rem;
+        color: var(--t3);
+        margin-top: .1rem;
+    }
+
+    /* pwd toggle */
+    .pwd-wrap {
+        position: relative;
+    }
+
+    .pwd-wrap .xinput {
+        padding-right: 2.8rem !important;
+    }
+
+    .pwd-eye {
+        position: absolute;
+        right: .8rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--t3);
+        cursor: pointer;
+        padding: .2rem;
+        z-index: 5;
+        line-height: 1;
+        font-size: .9rem;
+        transition: color .18s;
+    }
+
+    .pwd-eye:hover {
+        color: var(--lime);
+    }
+
+    @media(max-width:900px) {
+        .landing {
+            grid-template-columns: 1fr;
+        }
+
+        .hero-side {
+            display: none;
+        }
+
+        .form-side {
+            padding: 2rem 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block body %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center"
-    style="background:linear-gradient(135deg,#1A3A5C 0%,#2E86AB 100%);">
-    <div class="card shadow-lg" style="width:420px;border-radius:16px;border:none;">
-        <div class="card-body p-5">
+<div class="landing">
 
-            <!-- Logo -->
-            <div class="text-center mb-4">
-                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
-                    style="width:64px;height:64px;background:#EBF4F8;">
-                    <i class="bi bi-bank2 fs-2" style="color:#1A3A5C;"></i>
+    <!-- ══ LEFT — Hero ══════════════════════════════════════════════ -->
+    <div class="hero-side">
+
+        <div class="hero-tag">
+            <i class="bi bi-shield-check-fill"></i>Banque 100% sécurisée
+        </div>
+
+        <h1 class="hero-title">
+            La banque qui<br>
+            <em>protège</em> votre<br>avenir
+        </h1>
+
+        <p class="hero-sub">
+            Gérez vos finances en toute sécurité. Virements instantanés,
+            épargne intelligente, et protection maximale de vos données.
+        </p>
+
+        <div class="hero-ctas">
+            <a href="/auth/register" class="hero-btn-primary">
+                <i class="bi bi-person-plus-fill"></i>Ouvrir un compte
+            </a>
+            <a href="#form" class="hero-btn-outline">
+                Rechercher une transaction →
+            </a>
+        </div>
+
+        <div class="hero-stats">
+            <div>
+                <div class="hstat-val"><span>98</span>%</div>
+                <div class="hstat-lbl">Disponibilité</div>
+            </div>
+            <div>
+                <div class="hstat-val"><span>256</span>-bit</div>
+                <div class="hstat-lbl">Chiffrement SSL</div>
+            </div>
+            <div>
+                <div class="hstat-val"><span>24</span>/7</div>
+                <div class="hstat-lbl">Surveillance active</div>
+            </div>
+        </div>
+
+        <!-- Floating account card -->
+        <div class="hero-card">
+            <div class="hcard-label">Solde disponible</div>
+            <div class="hcard-val">12 480,00 €</div>
+            <div class="hcard-row">
+                <div>
+                    <div class="hcard-label">Transactions / mois</div>
+                    <div class="hcard-stat-v">+247</div>
                 </div>
-                <h4 class="fw-bold mb-0" style="color:#1A3A5C;">XUD-Bank</h4>
-                <p class="text-muted small">Accès sécurisé à votre espace</p>
+                <div>
+                    <div class="hcard-label">Score sécurité</div>
+                    <div class="hcard-stat-v">A+</div>
+                </div>
+            </div>
+            <div class="hcard-security">
+                <i class="bi bi-shield-check-fill"></i>
+                Aucune activité suspecte
+            </div>
+        </div>
+
+        <!-- Feature pills bottom-left -->
+        <div class="hero-features">
+            <div class="feat-pill"><i class="bi bi-lightning-fill"></i>Virements instantanés</div>
+            <div class="feat-pill"><i class="bi bi-lock-fill"></i>Sécurité avancée</div>
+            <div class="feat-pill"><i class="bi bi-graph-up-arrow"></i>Analyse en temps réel</div>
+        </div>
+
+    </div>
+
+    <!-- ══ RIGHT — Login form ════════════════════════════════════════ -->
+    <div class="form-side" id="form">
+
+        <div class="form-logo">X</div>
+        <div class="form-title">Bienvenue</div>
+        <p class="form-sub">Connectez-vous à votre espace sécurisé Xud-Bank</p>
+
+        {% if error %}
+        <div class="xalert-err">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        {% if request.query_params.get('registered') %}
+        <div class="xalert-ok">
+            <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+            <span>Compte créé avec succès. Connectez-vous.</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/auth/login" novalidate>
+
+            <div class="xfield">
+                <label>Identifiant</label>
+                <i class="bi bi-person fi"></i>
+                <input type="text" name="username" class="xinput" placeholder="votre_identifiant" required
+                    autocomplete="username" />
             </div>
 
-            <!-- Alerte erreur -->
-            {% if error %}
-            <div class="alert alert-danger d-flex align-items-center gap-2 py-2" role="alert">
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                <span class="small">{{ error }}</span>
-            </div>
-            {% endif %}
-
-            <!-- Alerte succès inscription -->
-            {% if request.query_params.get('registered') %}
-            <div class="alert alert-success d-flex align-items-center gap-2 py-2">
-                <i class="bi bi-check-circle-fill"></i>
-                <span class="small">Compte créé. Connectez-vous.</span>
-            </div>
-            {% endif %}
-
-            <!-- Formulaire -->
-            <form method="post" action="/auth/login" novalidate>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small">Nom d'utilisateur</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-person"></i></span>
-                        <input type="text" name="username" class="form-control" placeholder="votre_identifiant" required
-                            autocomplete="username" />
-                    </div>
+            <div class="xfield">
+                <label>Mot de passe</label>
+                <div class="pwd-wrap">
+                    <i class="bi bi-lock fi" style="z-index:2;"></i>
+                    <input type="password" name="password" id="pwdIn" class="xinput" placeholder="••••••••" required
+                        autocomplete="current-password" />
+                    <button type="button" class="pwd-eye" id="togglePwd">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
                 </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold small">Mot de passe</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input type="password" name="password" class="form-control" placeholder="••••••••" required
-                            autocomplete="current-password" />
-                        <button type="button" class="btn btn-outline-secondary" id="togglePwd">
-                            <i class="bi bi-eye" id="eyeIcon"></i>
-                        </button>
-                    </div>
-                </div>
-                <button type="submit" class="btn w-100 text-white fw-semibold"
-                    style="background:#1A3A5C;border-radius:8px;">
-                    <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
-                </button>
-            </form>
+            </div>
 
-            <hr class="my-4" />
-            <p class="text-center text-muted small mb-0">
-                Pas encore de compte ?
-                <a href="/auth/register" class="fw-semibold" style="color:#2E86AB;">Créer un compte</a>
-            </p>
+            <button type="submit" class="btn-lime" style="margin-top:.5rem;">
+                <i class="bi bi-box-arrow-in-right"></i>Se connecter
+            </button>
+        </form>
+
+        <p style="text-align:center;font-size:.82rem;color:var(--t2);margin-top:1.2rem;">
+            Pas encore de compte ?
+            <a href="/auth/register"
+                style="color:var(--lime);font-weight:700;text-decoration:none;transition:opacity .18s;"
+                onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
+                Créer un compte
+            </a>
+        </p>
+
+        <div class="trust-strip">
+            <div class="trust-item">
+                <div class="trust-val">SSL</div>
+                <div class="trust-lbl">Chiffré</div>
+            </div>
+            <div class="trust-item">
+                <div class="trust-val">2FA</div>
+                <div class="trust-lbl">Disponible</div>
+            </div>
+            <div class="trust-item">
+                <div class="trust-val">RGPD</div>
+                <div class="trust-lbl">Conforme</div>
+            </div>
+            <div class="trust-item">
+                <div class="trust-val">ISO</div>
+                <div class="trust-lbl">Certifié</div>
+            </div>
         </div>
     </div>
 </div>
@@ -72,14 +555,10 @@
 
 {% block extra_js %}
 <script>
-  document.getElementById('togglePwd').addEventListener('click', function() {
-    const pwd = document.querySelector('input[name="password"]');
-    const icon = document.getElementById('eyeIcon');
-    if (pwd.type === 'password') {
-      pwd.type = 'text'; icon.className = 'bi bi-eye-slash';
-    } else {
-      pwd.type = 'password'; icon.className = 'bi bi-eye';
-    }
-  });
+    document.getElementById('togglePwd').addEventListener('click', function () {
+        const p = document.getElementById('pwdIn'), ic = document.getElementById('eyeIcon');
+        if (p.type === 'password') { p.type = 'text'; ic.className = 'bi bi-eye-slash'; }
+        else { p.type = 'password'; ic.className = 'bi bi-eye'; }
+    });
 </script>
 {% endblock %}

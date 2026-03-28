@@ -1,154 +1,184 @@
 {% extends "base.html" %}
-{% block title %}Comptes Bancaires — XUD-Bank{% endblock %}
+{% block title %}Comptes Bancaires — X{% endblock %}
 
 {% block extra_css %}
 <style>
-    .classification-public {
-        border-left: 4px solid #16A34A;
+    .acc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
     }
 
-    .classification-confidentiel {
-        border-left: 4px solid #D97706;
+    .acc-card {
+        background: var(--bg-glass);
+        border: 1px solid var(--bdr2);
+        border-radius: 14px;
+        padding: 1.4rem;
+        backdrop-filter: blur(12px);
+        box-shadow: var(--sh-card);
+        position: relative;
+        overflow: hidden;
+        transition: all .22s var(--ease);
+        animation: fadeSlideUp .4s var(--ease) both;
     }
 
-    .classification-secret {
-        border-left: 4px solid #DC2626;
+    .acc-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(180, 255, 69, .2);
+        box-shadow: var(--sh-card), 0 0 28px rgba(180, 255, 69, .07);
     }
 
-    .badge-public {
-        background: #16A34A !important;
+    /* classification borders override */
+    .acc-card.classification-public {
+        border-left: 3px solid var(--s-low);
     }
 
-    .badge-confidentiel {
-        background: #D97706 !important;
+    .acc-card.classification-confidentiel {
+        border-left: 3px solid var(--s-med);
     }
 
-    .badge-secret {
-        background: #DC2626 !important;
+    .acc-card.classification-secret {
+        border-left: 3px solid var(--s-hi);
     }
 
-    .solde-amount {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1A3A5C;
+    .acc-detail-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        width: 100%;
+        margin-top: 1rem;
+        padding: .55rem;
+        border-radius: 9px;
+        border: 1px solid var(--bdr2);
+        background: transparent;
+        color: var(--t2);
+        font-size: .8rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all .18s var(--ease);
+        cursor: pointer;
+        font-family: 'Figtree', sans-serif;
     }
 
-    .history-item {
-        border-left: 3px solid #EBF4F8;
-        padding-left: 1rem;
-        margin-bottom: .5rem;
+    .acc-detail-btn:hover {
+        border-color: var(--lime-b);
+        color: var(--lime);
+        background: var(--lime-dim);
     }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="row">
+<div class="app-shell">
 
-        <!-- SIDEBAR -->
-        <div class="col-auto sidebar py-3" style="width:220px;">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link active" href="/data/accounts">
-                        <i class="bi bi-credit-card me-2"></i>Mes comptes
-                    </a>
-                </li>
-                {% if user.role in ['admin','analyste'] %}
-                <li class="nav-item mt-3">
-                    <span class="nav-link text-white-50 small text-uppercase fw-bold"
-                        style="font-size:.7rem;">Sécurité</span>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/dashboard"><i class="bi bi-graph-up me-2"></i>Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/alerts"><i class="bi bi-bell me-2"></i>Alertes</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/events"><i class="bi bi-list-ul me-2"></i>Événements</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/users"><i class="bi bi-people me-2"></i>Utilisateurs</a>
-                </li>
-                {% endif %}
-            </ul>
+    <!-- SIDEBAR -->
+    <nav class="xsidebar">
+        <div class="sb-grp">
+            <a class="sb-a active" href="/data/accounts"><i class="bi bi-credit-card"></i>Mes comptes</a>
+        </div>
+        {% if user.role in ['admin','analyste'] %}
+        <div class="sb-grp">
+            <div class="sb-grp-label">Sécurité</div>
+            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- MAIN -->
+    <main class="xmain">
+
+        <!-- Header -->
+        <div class="pg-hdr">
+            <div>
+                <h4><i class="bi bi-credit-card" style="color:var(--lime);margin-right:.5rem;"></i>Comptes bancaires
+                </h4>
+                <p class="sub">
+                    {{ total }} compte(s) — connecté en tant que
+                    <strong style="color:var(--t1);">{{ user.username }}</strong>
+                    <span class="u-role u-role-{{ user.role }}" style="margin-left:.4rem;display:inline-flex;">{{
+                        user.role }}</span>
+                </p>
+            </div>
         </div>
 
-        <!-- MAIN -->
-        <div class="col main-content">
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <div>
-                    <h4 class="fw-bold mb-0" style="color:#1A3A5C;">
-                        <i class="bi bi-credit-card me-2"></i>Comptes bancaires
-                    </h4>
-                    <p class="text-muted small mb-0">
-                        {{ total }} compte(s) — connecté en tant que
-                        <strong>{{ user.username }}</strong>
-                        <span class="badge bg-secondary">{{ user.role }}</span>
-                    </p>
-                </div>
+        {% if not accounts %}
+        <div style="display:flex;align-items:center;gap:1rem;
+                    background:var(--bg-glass);border:1px solid var(--bdr2);
+                    border-radius:14px;padding:2rem;backdrop-filter:blur(12px);">
+            <div class="stat-icon" style="background:rgba(37,99,235,.1);width:48px;height:48px;flex-shrink:0;">
+                <i class="bi bi-info-circle" style="color:#60A5FA;font-size:1.2rem;"></i>
             </div>
-
-            {% if not accounts %}
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle me-2"></i>Aucun compte disponible.
+            <div>
+                <div style="font-weight:700;color:var(--t1);margin-bottom:.2rem;">Aucun compte disponible</div>
+                <div style="font-size:.82rem;color:var(--t2);">Aucun compte n'est associé à votre profil.</div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            <div class="row g-3">
-                {% for acc in accounts %}
-                <div class="col-md-6 col-xl-4">
-                    <div class="card card-stat classification-{{ acc.classification }} h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <span class="badge badge-{{ acc.classification }} text-white mb-1">
-                                        {{ acc.classification | upper }}
-                                    </span>
-                                    <h6 class="mb-0 fw-bold">{{ acc.titulaire }}</h6>
-                                    <small class="text-muted">{{ acc.id_compte }}</small>
-                                </div>
-                                <div class="stat-icon" style="background:#EBF4F8;">
-                                    <i class="bi bi-bank2" style="color:#1A3A5C;"></i>
-                                </div>
-                            </div>
+        <div class="acc-grid stagger">
+            {% for acc in accounts %}
+            <div class="acc-card classification-{{ acc.classification }}"
+                style="animation-delay:{{ loop.index * 0.06 }}s;">
 
-                            <div class="mb-3">
-                                <p class="text-muted small mb-1">Solde disponible</p>
-                                <span class="solde-amount">{{ "%.2f"|format(acc.solde) }} €</span>
-                            </div>
-
-                            <!-- Historique (3 dernières transactions) -->
-                            {% if acc.historique %}
-                            <div class="mt-3">
-                                <p class="text-muted small fw-semibold mb-2">Dernières transactions</p>
-                                {% for tx in acc.historique[-3:] | reverse %}
-                                <div class="history-item">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="small">{{ tx.libelle }}</span>
-                                        <span
-                                            class="small fw-bold {% if tx.montant > 0 %}text-success{% else %}text-danger{% endif %}">
-                                            {{ "%+.2f"|format(tx.montant) }} €
-                                        </span>
-                                    </div>
-                                    <small class="text-muted">{{ tx.date }}</small>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-
-                            <div class="mt-3">
-                                <a href="/data/accounts/{{ acc.id }}" class="btn btn-sm w-100"
-                                    style="background:#EBF4F8;color:#1A3A5C;border:none;font-weight:600;">
-                                    <i class="bi bi-eye me-1"></i>Voir le détail
-                                </a>
-                            </div>
+                <!-- Top -->
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
+                    <div>
+                        <span class="bdg bdg-{{ acc.classification }}" style="margin-bottom:.4rem;display:inline-flex;">
+                            {{ acc.classification | upper }}
+                        </span>
+                        <div
+                            style="font-family:'Syne',sans-serif;font-weight:700;color:var(--t1);font-size:.95rem;margin-bottom:.2rem;">
+                            {{ acc.titulaire }}
                         </div>
+                        <div style="font-size:.72rem;color:var(--t3);font-family:monospace;">{{ acc.id_compte }}</div>
+                    </div>
+                    <div class="stat-icon"
+                        style="background:rgba(180,255,69,.06);width:38px;height:38px;border-radius:9px;">
+                        <i class="bi bi-bank2" style="color:var(--lime);font-size:.95rem;"></i>
                     </div>
                 </div>
-                {% endfor %}
+
+                <!-- Solde -->
+                <div style="border-top:1px solid var(--bdr2);padding-top:.9rem;margin-bottom:.9rem;">
+                    <div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+                                color:var(--t3);margin-bottom:.3rem;font-family:'Syne',sans-serif;">
+                        Solde disponible
+                    </div>
+                    <span class="solde-amount">{{ "%.2f"|format(acc.solde) }} €</span>
+                </div>
+
+                <!-- Historique -->
+                {% if acc.historique %}
+                <div style="margin-bottom:.5rem;">
+                    <div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+                                color:var(--t3);margin-bottom:.5rem;font-family:'Syne',sans-serif;">
+                        Dernières transactions
+                    </div>
+                    {% for tx in acc.historique[-3:] | reverse %}
+                    <div class="history-item">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:.8rem;color:var(--t1);">{{ tx.libelle }}</span>
+                            <span style="font-size:.8rem;font-weight:700;
+                                         color:{% if tx.montant > 0 %}var(--s-low){% else %}var(--s-hi){% endif %};">
+                                {{ "%+.2f"|format(tx.montant) }} €
+                            </span>
+                        </div>
+                        <div style="font-size:.68rem;color:var(--t3);">{{ tx.date }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <a href="/data/accounts/{{ acc.id }}" class="acc-detail-btn">
+                    <i class="bi bi-eye"></i>Voir le détail
+                </a>
             </div>
+            {% endfor %}
         </div>
-    </div>
+    </main>
 </div>
 {% endblock %}

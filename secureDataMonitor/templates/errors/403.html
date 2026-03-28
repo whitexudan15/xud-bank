@@ -1,18 +1,196 @@
 {% extends "base.html" %}
 {% block title %}403 — Accès refusé{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        overflow: hidden !important;
+    }
+
+    .err-scene {
+        position: fixed;
+        top: var(--nav-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .err-wrap {
+        text-align: center;
+        animation: fadeSlideUp .45s var(--ease) both;
+        position: relative;
+    }
+
+    .err-num-bg {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: clamp(10rem, 25vw, 18rem);
+        line-height: 1;
+        background: linear-gradient(135deg, rgba(255, 69, 96, .12), rgba(255, 69, 96, .04));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        user-select: none;
+        pointer-events: none;
+        animation: errFloat 6s ease-in-out infinite;
+    }
+
+    @keyframes errFloat {
+
+        0%,
+        100% {
+            transform: translate(-50%, -50%)
+        }
+
+        50% {
+            transform: translate(-50%, -54%)
+        }
+    }
+
+    .err-icon {
+        font-size: 3.5rem;
+        color: var(--s-hi);
+        margin-bottom: 1rem;
+        animation: errPulse 3s ease-in-out infinite;
+        position: relative;
+        z-index: 1;
+    }
+
+    @keyframes errPulse {
+
+        0%,
+        100% {
+            filter: drop-shadow(0 0 8px rgba(255, 69, 96, .4));
+        }
+
+        50% {
+            filter: drop-shadow(0 0 24px rgba(255, 69, 96, .8));
+        }
+    }
+
+    .err-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--t1);
+        margin-bottom: .4rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .err-sub {
+        font-size: .9rem;
+        color: var(--t2);
+        margin-bottom: 2rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .err-actions {
+        display: flex;
+        gap: .75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+
+    .err-btn-p {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        background: var(--lime);
+        color: var(--t-inv);
+        border-radius: 10px;
+        padding: .72rem 1.5rem;
+        font-family: 'Syne', sans-serif;
+        font-size: .88rem;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 6px 24px rgba(180, 255, 69, .28);
+        transition: all .2s var(--ease);
+    }
+
+    .err-btn-p:hover {
+        transform: translateY(-2px);
+        color: var(--t-inv);
+    }
+
+    .err-btn-s {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        background: rgba(255, 69, 96, .1);
+        border: 1.5px solid rgba(255, 69, 96, .22);
+        color: var(--s-hi);
+        border-radius: 10px;
+        padding: .7rem 1.4rem;
+        font-size: .88rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all .2s var(--ease);
+    }
+
+    .err-btn-s:hover {
+        background: rgba(255, 69, 96, .2);
+    }
+
+    /* ring decorations */
+    .err-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: ringPulse 5s ease-in-out infinite;
+    }
+
+    @keyframes ringPulse {
+
+        0%,
+        100% {
+            opacity: .3;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        50% {
+            opacity: .6;
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background:#F8FAFC;">
-    <div class="text-center">
-        <div class="mb-4" style="font-size:5rem;color:#DC2626;">
-            <i class="bi bi-shield-x"></i>
-        </div>
-        <h1 class="fw-bold mb-2" style="color:#1A3A5C;">403</h1>
-        <h5 class="text-muted mb-1">Accès refusé</h5>
-        <p class="text-muted small mb-4">Vous n'avez pas les privilèges nécessaires pour accéder à
-            <code>{{ path }}</code>
+<div class="err-scene">
+    <!-- decorative rings -->
+    <div class="err-ring" style="width:340px;height:340px;border-color:rgba(255,69,96,.06);animation-delay:0s;"></div>
+    <div class="err-ring" style="width:500px;height:500px;border-color:rgba(255,69,96,.04);animation-delay:1s;"></div>
+
+    <div class="err-wrap">
+        <div class="err-num-bg">403</div>
+        <div class="err-icon"><i class="bi bi-shield-x"></i></div>
+        <h2 class="err-title">Accès refusé</h2>
+        <p class="err-sub">
+            Vous n'avez pas les privilèges nécessaires pour accéder à
+            <code style="background:rgba(255,69,96,.08);border:1px solid rgba(255,69,96,.18);
+                          color:var(--s-hi);padding:.1rem .45rem;border-radius:6px;font-size:.85rem;">
+                {{ path }}
+            </code>
         </p>
-        <a href="/data/accounts" class="btn btn-primary me-2"><i class="bi bi-house me-1"></i>Accueil</a>
-        <a href="/auth/logout" class="btn btn-outline-danger"><i class="bi bi-box-arrow-right me-1"></i>Déconnexion</a>
+        <div class="err-actions">
+            <a href="/data/accounts" class="err-btn-p"><i class="bi bi-house"></i>Accueil</a>
+            <a href="/auth/logout" class="err-btn-s"><i class="bi bi-box-arrow-right"></i>Déconnexion</a>
+        </div>
     </div>
 </div>
 {% endblock %}

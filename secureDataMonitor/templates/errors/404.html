@@ -1,15 +1,153 @@
 {% extends "base.html" %}
-{% block title %}404 — Page introuvable{% endblock %}
+{% block title %}404 — Not Found{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        overflow: hidden !important;
+    }
+
+    .err-scene {
+        position: fixed;
+        top: var(--nav-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .err-wrap {
+        text-align: center;
+        animation: fadeSlideUp .45s var(--ease) both;
+        position: relative;
+    }
+
+    .err-num-bg {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: clamp(10rem, 25vw, 18rem);
+        line-height: 1;
+        background: linear-gradient(135deg, rgba(180, 255, 69, .1), rgba(0, 212, 170, .05));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        user-select: none;
+        pointer-events: none;
+        animation: nfFloat 7s ease-in-out infinite;
+    }
+
+    @keyframes nfFloat {
+
+        0%,
+        100% {
+            transform: translate(-50%, -50%);
+        }
+
+        50% {
+            transform: translate(-50%, -54%);
+        }
+    }
+
+    .err-icon {
+        font-size: 3.5rem;
+        color: var(--lime);
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
+        animation: nfSpin 10s linear infinite;
+    }
+
+    @keyframes nfSpin {
+        0% {
+            filter: drop-shadow(0 0 10px rgba(180, 255, 69, .5));
+        }
+
+        50% {
+            filter: drop-shadow(0 0 25px rgba(180, 255, 69, .8));
+        }
+
+        100% {
+            filter: drop-shadow(0 0 10px rgba(180, 255, 69, .5));
+        }
+    }
+
+    .err-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: ringPulse2 6s ease-in-out infinite;
+    }
+
+    @keyframes ringPulse2 {
+
+        0%,
+        100% {
+            opacity: .25;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        50% {
+            opacity: .5;
+            transform: translate(-50%, -50%) scale(1.06);
+        }
+    }
+
+    .err-btn-p {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        background: var(--lime);
+        color: var(--t-inv);
+        border-radius: 10px;
+        padding: .72rem 1.5rem;
+        font-family: 'Syne', sans-serif;
+        font-size: .88rem;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 6px 24px rgba(180, 255, 69, .28);
+        transition: all .2s var(--ease);
+    }
+
+    .err-btn-p:hover {
+        transform: translateY(-2px);
+        color: var(--t-inv);
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background:#F8FAFC;">
-    <div class="text-center">
-        <div class="mb-4" style="font-size:5rem;color:#2E86AB;">
-            <i class="bi bi-search"></i>
-        </div>
-        <h1 class="fw-bold mb-2" style="color:#1A3A5C;">404</h1>
-        <h5 class="text-muted mb-1">Page introuvable</h5>
-        <p class="text-muted small mb-4">La ressource <code>{{ path }}</code> n'existe pas.</p>
-        <a href="/data/accounts" class="btn btn-primary"><i class="bi bi-house me-1"></i>Accueil</a>
+<div class="err-scene">
+    <div class="err-ring" style="width:340px;height:340px;border-color:rgba(180,255,69,.06);"></div>
+    <div class="err-ring" style="width:500px;height:500px;border-color:rgba(180,255,69,.04);animation-delay:.8s;"></div>
+
+    <div class="err-wrap">
+        <div class="err-num-bg">404</div>
+        <div class="err-icon"><i class="bi bi-search"></i></div>
+        <h2 style="font-size:1.6rem;font-weight:800;color:var(--t1);margin-bottom:.4rem;position:relative;z-index:1;">
+            Page introuvable
+        </h2>
+        <p style="font-size:.9rem;color:var(--t2);margin-bottom:2rem;position:relative;z-index:1;">
+            La ressource
+            <code style="background:var(--lime-dim);border:1px solid var(--lime-b);
+                          color:var(--lime);padding:.1rem .45rem;border-radius:6px;font-size:.85rem;">
+                {{ path }}
+            </code>
+            n'existe pas.
+        </p>
+        <a href="/data/accounts" class="err-btn-p" style="position:relative;z-index:1;">
+            <i class="bi bi-house"></i>Retour à l'accueil
+        </a>
     </div>
 </div>
 {% endblock %}
