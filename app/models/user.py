@@ -14,7 +14,8 @@ import enum
 
 class UserRole(str, enum.Enum):
     admin       = "admin"
-    analyste    = "analyste"
+    directeur   = "directeur"
+    comptable   = "comptable"
     utilisateur = "utilisateur"
 
 

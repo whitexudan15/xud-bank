@@ -77,7 +77,7 @@
         <div class="sb-grp">
             <a class="sb-a active" href="/data/accounts"><i class="bi bi-credit-card"></i>Mes comptes</a>
         </div>
-        {% if user.role in ['admin','analyste'] %}
+        {% if user.role in ['admin','directeur'] %}
         <div class="sb-grp">
             <div class="sb-grp-label">Sécurité</div>
             <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>

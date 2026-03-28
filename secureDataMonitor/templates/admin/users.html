@@ -62,11 +62,13 @@
                             <td style="font-size:.82rem;color:var(--t2);">{{ u.email }}</td>
                             <td>
                                 {% if u.role.value == 'admin' %}
-                                <span class="u-role u-role-admin d-inline-flex">{{ u.role.value }}</span>
-                                {% elif u.role.value == 'analyste' %}
-                                <span class="u-role u-role-analyste d-inline-flex">{{ u.role.value }}</span>
+                                <span class="u-role u-role-admin">admin</span>
+                                {% elif u.role.value == 'directeur' %}
+                                <span class="u-role u-role-directeur">directeur</span>
+                                {% elif u.role.value == 'comptable' %}
+                                <span class="u-role u-role-comptable">comptable</span>
                                 {% else %}
-                                <span class="u-role u-role-client d-inline-flex">{{ u.role.value }}</span>
+                                <span class="u-role u-role-client">utilisateur</span>
                                 {% endif %}
                             </td>
                             <td style="text-align:center;">

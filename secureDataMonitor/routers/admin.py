@@ -34,7 +34,7 @@ async def _require_admin_or_analyst(request: Request, db: AsyncSession) -> dict:
     """Vérifie rôle admin ou analyste, émet événement si refus."""
     from secureDataMonitor.events.dispatcher import dispatcher
     try:
-        user_data = require_role("admin", "analyste")(request)
+        user_data = require_role("admin", "directeur")(request)
         return user_data
     except HTTPException:
         user_data = get_current_user_data(request)
@@ -55,7 +55,7 @@ async def _require_admin_or_analyst(request: Request, db: AsyncSession) -> dict:
 async def admin_index(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("admin", "analyste")),
+    user_data: dict = Depends(require_role("admin", "directeur")),
 ):
     """
     Vue principale admin/SOC :
@@ -139,7 +139,7 @@ async def admin_index(
 async def dashboard(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("admin", "analyste")),
+    user_data: dict = Depends(require_role("admin", "directeur")),
 ):
     """
     Tableau de bord sécurité avec WebSocket pour alertes temps réel.
@@ -260,7 +260,7 @@ async def admin_events(
     event_type: str = None,
     page: int = 1,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("admin", "analyste")),
+    user_data: dict = Depends(require_role("admin", "directeur")),
 ):
     """
     Historique complet des security_events.
@@ -308,7 +308,7 @@ async def admin_alerts(
     resolved: str = "false",
     page: int = 1,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("admin", "analyste")),
+    user_data: dict = Depends(require_role("admin", "directeur")),
 ):
     """Alertes actives et résolues avec résolution manuelle."""
     per_page = 20
@@ -348,7 +348,7 @@ async def resolve_alert_route(
     alert_id: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("admin", "analyste")),
+    user_data: dict = Depends(require_role("admin", "directeur")),
 ):
     """Marque une alerte comme résolue."""
     import uuid

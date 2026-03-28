@@ -109,18 +109,25 @@ async def list_accounts(
     query = select(BankAccount)
 
     if role == UserRole.utilisateur.value:
-        # Ses comptes uniquement
+        # Client : ses comptes uniquement
         query = query.where(BankAccount.owner_id == user_data["user_id"])
 
-    elif role == UserRole.analyste.value:
-        # Tous sauf "secret"
+    elif role == UserRole.comptable.value:
+        # Comptable : tous les comptes sauf SECRET
         query = query.where(
             BankAccount.classification.in_([
                 AccountClassification.public,
                 AccountClassification.confidentiel,
             ])
         )
-    # admin : tous les comptes, pas de filtre
+
+    elif role == UserRole.directeur.value:
+        # Directeur : tous les comptes sans filtre
+        pass
+
+    elif role == UserRole.admin.value:
+        # Admin SOC : pas accès aux comptes
+        raise HTTPException(status_code=403, detail="Accès refusé.")
 
     query = query.order_by(BankAccount.created_at.desc())
     result = await db.execute(query)
@@ -197,9 +204,22 @@ async def account_detail(
         raise HTTPException(status_code=404, detail="Compte introuvable.")
 
     # Vérification périmètre
-    if role == UserRole.utilisateur.value:
+    if role == UserRole.admin.value:
+        # Admin SOC : pas accès aux comptes
+        await dispatcher.emit("unauthorized", {
+            "ip": ip,
+            "username": username,
+            "role": role,
+            "path": f"/data/accounts/{account_id}",
+        })
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Les administrateurs système n'ont pas accès aux comptes clients.",
+        )
+
+    elif role == UserRole.utilisateur.value:
+        # Client : ses comptes uniquement
         if str(account.owner_id) != user_data["user_id"]:
-            # Tentative d'accès hors périmètre
             await dispatcher.emit("privilege_escalation", {
                 "ip": ip,
                 "username": username,
@@ -210,7 +230,8 @@ async def account_detail(
                 detail="Accès refusé.",
             )
 
-    elif role == UserRole.analyste.value:
+    elif role == UserRole.comptable.value:
+        # Comptable : tous sauf SECRET
         if account.classification == AccountClassification.secret:
             await dispatcher.emit("unauthorized", {
                 "ip": ip,
@@ -220,7 +241,7 @@ async def account_detail(
             })
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Accès refusé : données classifiées SECRET.",
+                detail="Accès refusé : compte classifié SECRET.",
             )
 
     # Désérialise historique

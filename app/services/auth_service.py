@@ -75,9 +75,9 @@ def decode_session_token(token: str) -> dict | None:
 # CRUD UTILISATEURS
 # ════════════════════════════════════════════════════════════
 
-async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
-    """Récupère un utilisateur par son username."""
-    result = await db.execute(select(User).where(User.username == username))
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
+    """Récupère un utilisateur par son email."""
+    result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
 
 
@@ -135,24 +135,24 @@ class AuthResult:
 
 async def authenticate(
     db: AsyncSession,
-    username: str,
-    password: str,
-) -> AuthResult:
+    email: str,
+    password: str
+    ) -> AuthResult:
     """
     Vérifie les credentials d'un utilisateur.
     Message d'erreur générique côté client (anti-énumération).
     Retourne AuthResult avec le détail interne pour le dispatcher.
     """
-    user = await get_user_by_username(db, username)
+    user = await get_user_by_email(db, email)
 
     # Utilisateur inexistant
     if user is None:
-        log.warning(f"Tentative sur utilisateur inexistant : '{username}'")
+        log.warning(f"Tentative sur utilisateur inexistant : '{email}'")
         return AuthResult(success=False, user=None, reason="unknown_user")
 
     # Compte verrouillé
     if user.is_locked:
-        log.warning(f"Tentative sur compte verrouillé : '{username}'")
+        log.warning(f"Tentative sur compte verrouillé : '{email}'")
         return AuthResult(success=False, user=user, reason="account_locked")
 
     # Mot de passe incorrect

@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";  -- gen_random_uuid()
 
 -- ── ENUMs ────────────────────────────────────────────────────
 
-CREATE TYPE user_role AS ENUM ('admin', 'analyste', 'utilisateur');
+CREATE TYPE user_role AS ENUM ('admin', 'directeur', 'comptable', 'utilisateur');
 
 CREATE TYPE account_classification AS ENUM ('public', 'confidentiel', 'secret');
 
