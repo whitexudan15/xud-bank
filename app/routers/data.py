@@ -42,7 +42,7 @@ async def _check_request_security(request: Request, user_data: dict) -> None:
     Émet les événements appropriés si détection.
     """
     ip = request.client.host
-    full_path = str(request.url)
+    full_path = request.url.path
 
     if check_suspicious_url(full_path):
         await dispatcher.emit("suspicious_url", {

@@ -142,13 +142,17 @@ async def login(
             "attempt": attempt_count,
         })
 
-    # Message générique (anti-énumération)
+    # Message selon la raison réelle
+    if result.reason == "account_locked":
+        error_msg = "Votre compte est verrouillé ! Contactez un Administrateur."
+    else:
+        error_msg = "Nom d'utilisateur ou mot de passe incorrect."
+
     return templates.TemplateResponse(
         "login.html",
-        {"request": request, "error": "Identifiants invalides ou compte verrouillé."},
+        {"request": request, "error": error_msg},
         status_code=401,
     )
-
 
 # ════════════════════════════════════════════════════════════
 # GET /auth/logout
