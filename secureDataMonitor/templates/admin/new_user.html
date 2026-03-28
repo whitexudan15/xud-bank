@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Nouvel utilisateur — Admin{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+    <nav class="xsidebar">
+        <div class="sb-grp">
+            <a class="sb-a active" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
+            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+        </div>
+        <div class="sb-grp">
+            <div class="sb-grp-label">Surveillance</div>
+            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+        </div>
+    </nav>
+    <main class="xmain">
+        <div class="pg-hdr">
+            <div>
+                <h4><i class="bi bi-person-plus" style="color:var(--lime);margin-right:.5rem;"></i>Créer un utilisateur
+                </h4>
+                <p class="sub">Ajouter un nouveau membre avec ses privilèges</p>
+            </div>
+            <a href="/admin/users" style="display:inline-flex;align-items:center;gap:.4rem;
+               background:transparent;border:1.5px solid var(--bdr2);border-radius:9px;
+               color:var(--t2);padding:.4rem .9rem;font-size:.8rem;font-weight:600;text-decoration:none;">
+                <i class="bi bi-arrow-left"></i>Retour
+            </a>
+        </div>
+
+        <div class="xcard" style="max-width:520px;animation:fadeSlideUp .4s var(--ease) both;">
+            <div class="xcard-body">
+
+                {% if error %}
+                <div style="display:flex;align-items:center;gap:.6rem;
+                            background:rgba(255,69,96,.08);border:1px solid rgba(255,69,96,.2);
+                            border-radius:10px;padding:.65rem .9rem;margin-bottom:1.2rem;
+                            font-size:.83rem;color:var(--s-hi);">
+                    <i class="bi bi-exclamation-triangle-fill"></i>{{ error }}
+                </div>
+                {% endif %}
+
+                <form method="post" action="/admin/users/new" novalidate>
+
+                    <div class="xfield">
+                        <label>Nom d'utilisateur</label>
+                        <i class="bi bi-person fi"></i>
+                        <input type="text" name="username" class="xinput" placeholder="jean.dupont" required />
+                    </div>
+
+                    <div class="xfield">
+                        <label>Adresse e-mail</label>
+                        <i class="bi bi-envelope fi"></i>
+                        <input type="email" name="email" class="xinput" placeholder="jean@xud-bank.com" required />
+                    </div>
+
+                    <div class="xfield">
+                        <label>Mot de passe</label>
+                        <i class="bi bi-lock fi"></i>
+                        <input type="password" name="password" class="xinput" placeholder="••••••••" required />
+                    </div>
+
+                    <div class="xfield">
+                        <label>Rôle</label>
+                        <i class="bi bi-shield fi"></i>
+                        <select name="role" class="xinput xselect" required>
+                            {% for r in roles %}
+                            <option value="{{ r }}">{{ r | capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-lime" style="margin-top:.8rem;">
+                        <i class="bi bi-person-check-fill"></i>Créer l'utilisateur
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

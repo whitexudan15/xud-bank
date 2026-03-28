@@ -1,114 +1,320 @@
 {% extends "base.html" %}
-{% block title %}Utilisateurs — Admin{% endblock %}
+{% block title %}Administration — XUD-Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1rem;
+        height: calc(100vh - var(--nav-h) - 120px);
+    }
+
+    .actions-list {
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+    }
+
+    .action-item {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        padding: .75rem .9rem;
+        background: rgba(255, 255, 255, .03);
+        border: 1px solid var(--bdr2);
+        border-radius: 10px;
+        text-decoration: none;
+        transition: all .18s var(--ease);
+    }
+
+    .action-item:hover {
+        background: rgba(255, 255, 255, .06);
+        border-color: var(--bdr);
+    }
+
+    .action-item.primary {
+        background: var(--lime-dim);
+        border-color: var(--lime-b);
+    }
+
+    .action-item.primary:hover {
+        background: rgba(180, 255, 69, .15);
+    }
+
+    .action-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: .88rem;
+    }
+
+    .action-title {
+        font-weight: 700;
+        font-family: 'Syne', sans-serif;
+        font-size: .84rem;
+        color: var(--t1);
+    }
+
+    .action-sub {
+        font-size: .71rem;
+        color: var(--t2);
+    }
+</style>
+{% endblock %}
 
 {% block body %}
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
+            <a class="sb-a active" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
             <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
         </div>
         <div class="sb-grp">
             <div class="sb-grp-label">Surveillance</div>
             <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
             <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
-            <a class="sb-a active" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
         </div>
     </nav>
-    <main class="xmain" style="display:flex;flex-direction:column;">
+    <main class="xmain" style="display:flex;flex-direction:column;overflow:hidden;">
 
-        <div class="pg-hdr" style="flex-shrink:0;">
+        <!-- Header compact -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-shrink:0;">
             <div>
-                <h4><i class="bi bi-people" style="color:var(--lime);margin-right:.5rem;"></i>Gestion des utilisateurs
+                <h4 style="font-size:1.1rem;margin-bottom:.1rem;">
+                    <i class="bi bi-shield-lock" style="color:var(--lime);margin-right:.45rem;"></i>Administration
                 </h4>
-                <p class="sub"><strong style="color:var(--t1);">{{ users|length }}</strong> utilisateur(s) enregistré(s)
+                <p style="font-size:.76rem;color:var(--t2);margin:0;">
+                    {{ user.username }}
+                    <span class="u-role u-role-{{ user.role }}" style="margin-left:.4rem;display:inline-flex;">{{
+                        user.role }}</span>
                 </p>
+            </div>
+            <!-- Stats inline -->
+            <div style="display:flex;gap:.7rem;">
+                {% for val, lbl, color, bg in [
+                (stats.total_events, 'Événements', 'var(--t1)', 'rgba(255,255,255,.04)'),
+                (stats.unresolved_alerts,'Alertes', 'var(--s-med)', 'rgba(245,158,11,.08)'),
+                (stats.locked_accounts, 'Verrouillés', 'var(--s-hi)', 'rgba(255,69,96,.08)'),
+                (stats.sqli_attempts, 'SQLi', 'var(--s-crit)','rgba(139,92,246,.08)'),
+                ] %}
+                <div style="background:{{ bg }};border:1px solid var(--bdr2);border-radius:10px;
+                                        padding:.6rem 1rem;text-align:center;min-width:80px;">
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
+                                            color:{{ color }};line-height:1;">{{ val }}</div>
+                    <div style="font-size:.67rem;color:var(--t3);margin-top:.2rem;font-weight:600;
+                                            text-transform:uppercase;letter-spacing:.6px;">{{ lbl }}</div>
+                </div>
+                {% endfor %}
             </div>
         </div>
 
-        <div class="xcard"
-            style="flex:1;min-height:0;display:flex;flex-direction:column;animation:fadeSlideUp .4s var(--ease) .08s both;">
-            <div class="table-wrap" style="flex:1;">
-                <table class="xtable">
-                    <thead>
-                        <tr>
-                            <th style="padding-left:1.4rem;">Utilisateur</th>
-                            <th>Email</th>
-                            <th>Rôle</th>
-                            <th style="text-align:center;">Échecs</th>
-                            <th>Statut</th>
-                            <th>Créé le</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for u in users %}
-                        <tr>
-                            <td style="padding-left:1.4rem;">
-                                <div style="display:flex;align-items:center;gap:.65rem;">
-                                    <div
-                                        style="width:32px;height:32px;border-radius:50%;flex-shrink:0;
-                                                background:linear-gradient(135deg,#1a3020,var(--lime));
-                                                display:flex;align-items:center;justify-content:center;
-                                                font-size:.62rem;font-weight:700;color:var(--t-inv);text-transform:uppercase;">
-                                        {{ u.username[:2] }}
-                                    </div>
-                                    <span
-                                        style="font-weight:700;color:var(--t1);font-family:'Syne',sans-serif;font-size:.88rem;">
-                                        {{ u.username }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td style="font-size:.82rem;color:var(--t2);">{{ u.email }}</td>
-                            <td>
-                                {% if u.role.value == 'admin' %}
-                                <span class="u-role u-role-admin d-inline-flex">{{ u.role.value }}</span>
-                                {% elif u.role.value == 'analyste' %}
-                                <span class="u-role u-role-analyste d-inline-flex">{{ u.role.value }}</span>
-                                {% else %}
-                                <span class="u-role u-role-client d-inline-flex">{{ u.role.value }}</span>
-                                {% endif %}
-                            </td>
-                            <td style="text-align:center;">
-                                <span
-                                    style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:{% if u.failed_attempts >= 3 %}800{% else %}400{% endif %};
-                                             color:{% if u.failed_attempts >= 3 %}var(--s-hi){% else %}var(--t3){% endif %};">
-                                    {{ u.failed_attempts }}
+        <!-- Grid principal -->
+        <div class="admin-grid" style="flex:1;min-height:0;">
+
+            <!-- Colonne gauche : actions rapides -->
+            <div class="xcard" style="animation:fadeSlideUp .35s var(--ease) both;display:flex;flex-direction:column;">
+                <div class="xcard-hdr">
+                    <span class="xcard-hdr-title">
+                        <i class="bi bi-lightning-fill" style="color:var(--lime);margin-right:.4rem;"></i>Actions
+                        rapides
+                    </span>
+                </div>
+                <div class="xcard-body actions-list" style="flex:1;">
+
+                    <a href="/admin/users/new" class="action-item primary">
+                        <div class="action-icon" style="background:var(--lime);">
+                            <i class="bi bi-person-plus-fill" style="color:var(--t-inv);"></i>
+                        </div>
+                        <div>
+                            <div class="action-title" style="color:var(--lime);">Créer un utilisateur</div>
+                            <div class="action-sub">Admin, comptable, directeur, client</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--lime);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+
+                    <a href="/admin/users" class="action-item">
+                        <div class="action-icon" style="background:rgba(37,99,235,.15);">
+                            <i class="bi bi-people-fill" style="color:#60A5FA;"></i>
+                        </div>
+                        <div>
+                            <div class="action-title">Gérer les utilisateurs</div>
+                            <div class="action-sub">Verrouiller, déverrouiller</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+
+                    <a href="/admin/alerts" class="action-item">
+                        <div class="action-icon" style="background:rgba(245,158,11,.12);">
+                            <i class="bi bi-bell-fill" style="color:var(--s-med);"></i>
+                        </div>
+                        <div>
+                            <div class="action-title">Gérer les alertes</div>
+                            <div class="action-sub">{{ stats.unresolved_alerts }} en attente</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+
+                    <a href="/admin/events" class="action-item">
+                        <div class="action-icon" style="background:rgba(180,255,69,.08);">
+                            <i class="bi bi-list-ul" style="color:var(--lime);"></i>
+                        </div>
+                        <div>
+                            <div class="action-title">Historique événements</div>
+                            <div class="action-sub">{{ stats.total_events }} événements total</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+
+                    <a href="/admin/dashboard" class="action-item">
+                        <div class="action-icon" style="background:rgba(139,92,246,.12);">
+                            <i class="bi bi-graph-up" style="color:var(--s-crit);"></i>
+                        </div>
+                        <div>
+                            <div class="action-title">Dashboard temps réel</div>
+                            <div class="action-sub">WebSocket — monitoring live</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Colonne droite : graphe alertes -->
+            <div class="xcard"
+                style="animation:fadeSlideUp .4s var(--ease) .1s both;display:flex;flex-direction:column;">
+                <div class="xcard-hdr">
+                    <span class="xcard-hdr-title">
+                        <i class="bi bi-bar-chart-line" style="color:var(--lime);margin-right:.45rem;"></i>
+                        Statistiques des alertes
+                    </span>
+                    <span id="chart-ws-dot" style="width:8px;height:8px;border-radius:50%;
+                          background:#DC2626;display:inline-block;transition:background .3s;"></span>
+                </div>
+                <div class="xcard-body"
+                    style="flex:1;display:flex;flex-direction:column;gap:1rem;padding:.9rem 1.1rem;">
+                    <canvas id="alertsChart" style="flex:1;max-height:280px;"></canvas>
+                    <!-- Légende custom -->
+                    <div style="display:flex;gap:1.4rem;justify-content:center;flex-wrap:wrap;">
+                        {% for level, color in
+                        [('LOW','#16A34A'),('MEDIUM','#D97706'),('HIGH','#DC2626'),('CRITICAL','#7C3AED')] %}
+                        <div style="display:flex;align-items:center;gap:.4rem;">
+                            <div style="width:28px;height:3px;border-radius:2px;background:{{ color }};"></div>
+                            <span
+                                style="font-size:.72rem;font-weight:700;color:var(--t2);font-family:'Syne',sans-serif;">
+                                {{ level }}
+                                <span id="legend-{{ level }}" style="color:var(--t1);margin-left:.2rem;">
+                                    {{ severity_stats.get(level, 0) }}
                                 </span>
-                            </td>
-                            <td>
-                                {% if u.is_locked %}
-                                <span class="bdg"
-                                    style="background:rgba(255,69,96,.1);color:var(--s-hi);border:1px solid rgba(255,69,96,.22);">
-                                    <i class="bi bi-lock-fill"></i>Verrouillé
-                                </span>
-                                {% else %}
-                                <span class="bdg"
-                                    style="background:rgba(180,255,69,.08);color:var(--lime);border:1px solid var(--lime-b);">
-                                    <i class="bi bi-unlock-fill"></i>Actif
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td style="font-size:.8rem;color:var(--t3);">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>
-                                {% if u.is_locked %}
-                                <form method="post" action="/admin/users/{{ u.username }}/unlock" class="d-inline">
-                                    <button type="submit" class="btn-sm-ok"><i
-                                            class="bi bi-unlock-fill"></i>Déverrouiller</button>
-                                </form>
-                                {% else %}
-                                <form method="post" action="/admin/users/{{ u.username }}/lock" class="d-inline">
-                                    <button type="submit" class="btn-sm-danger"><i
-                                            class="bi bi-lock-fill"></i>Verrouiller</button>
-                                </form>
-                                {% endif %}
-                            </td>
-                        </tr>
+                            </span>
+                        </div>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script id="chart-data" type="application/json">{{ chart_data | tojson }}</script>
+<script>
+    const raw = JSON.parse(document.getElementById('chart-data').textContent);
+
+    // Prépare les labels (heures) et datasets par severity
+    const levels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    const colors = {
+        LOW: { border: '#16A34A', bg: 'rgba(22,163,74,.12)' },
+        MEDIUM: { border: '#D97706', bg: 'rgba(217,119,6,.12)' },
+        HIGH: { border: '#DC2626', bg: 'rgba(220,38,38,.12)' },
+        CRITICAL: { border: '#7C3AED', bg: 'rgba(124,58,237,.12)' },
+    };
+
+    const labels = raw.labels;
+    const datasets = levels.map(level => ({
+        label: level,
+        data: raw[level] || [],
+        borderColor: colors[level].border,
+        backgroundColor: colors[level].bg,
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: colors[level].border,
+        tension: 0.4,
+        fill: true,
+    }));
+
+    const chart = new Chart(document.getElementById('alertsChart'), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(11,21,40,.95)',
+                    borderColor: 'rgba(255,255,255,.08)',
+                    borderWidth: 1,
+                    titleFont: { family: 'Syne', weight: '700', size: 12 },
+                    bodyFont: { family: 'Figtree', size: 11 },
+                    padding: 10,
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,.04)' },
+                    ticks: { color: '#3A5070', font: { size: 10, family: 'Figtree' } }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#3A5070', font: { size: 10 } },
+                    grid: { color: 'rgba(255,255,255,.04)' }
+                }
+            }
+        }
+    });
+
+    // Mise à jour via WebSocket
+    const wsHost = window.location.host;
+    const ws = new WebSocket(`ws://${wsHost}/ws/alerts`);
+    const dot = document.getElementById('chart-ws-dot');
+
+    ws.onopen = () => { dot.style.background = '#16A34A'; };
+    ws.onclose = () => { dot.style.background = '#DC2626'; };
+
+    ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        if (msg.type === 'new_alert') {
+            const level = msg.alert.alert_level;
+            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+            // Ajoute un point sur le graphe
+            const ds = chart.data.datasets.find(d => d.label === level);
+            if (ds) {
+                chart.data.labels.push(now);
+                levels.forEach(l => {
+                    const d = chart.data.datasets.find(x => x.label === l);
+                    if (d) d.data.push(l === level ? 1 : 0);
+                });
+                if (chart.data.labels.length > 24) {
+                    chart.data.labels.shift();
+                    chart.data.datasets.forEach(d => d.data.shift());
+                }
+                chart.update('active');
+            }
+
+            // Met à jour les compteurs de légende
+            const el = document.getElementById(`legend-${level}`);
+            if (el) el.textContent = parseInt(el.textContent || 0) + 1;
+        }
+    };
+</script>
 {% endblock %}

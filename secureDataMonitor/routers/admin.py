@@ -115,6 +115,40 @@ async def admin_index(
     )
     severity_stats = {row.severity.value: row.count for row in severity_stats_result.all()}
 
+    # Données graphe alertes par heure et severity (24h)
+    chart_result = await db.execute(
+        select(
+            func.date_trunc("hour", Alert.timestamp).label("hour"),
+            Alert.alert_level,
+            func.count(Alert.id).label("count"),
+        )
+        .where(Alert.timestamp >= last_24h)
+        .group_by("hour", Alert.alert_level)
+        .order_by("hour")
+    )
+    chart_rows = chart_result.all()
+
+    slots = []
+    slot = last_24h.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    while slot <= now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1):
+        slots.append(slot.strftime('%H:%M'))
+        slot += timedelta(hours=1)
+
+    chart_data = {"labels": slots}
+    for level in ["LOW", "MEDIUM", "HIGH", "CRITICAL"]:
+        chart_data[level] = [
+            sum(r.count for r in chart_rows
+                if str(r.hour)[11:16] == h and r.alert_level.value == level)
+            for h in slots
+        ]
+
+    # Stats globales alertes par severity
+    alert_severity_result = await db.execute(
+        select(Alert.alert_level, func.count(Alert.id).label("count"))
+        .group_by(Alert.alert_level)
+    )
+    alert_severity_stats = {r.alert_level.value: r.count for r in alert_severity_result.all()}
+
     return templates.TemplateResponse("admin/index.html", {
         "request": request,
         "user": user_data,
@@ -124,10 +158,9 @@ async def admin_index(
             "locked_accounts": locked_accounts,
             "sqli_attempts": sqli_attempts,
         },
-        "recent_events": recent_events,
         "recent_alerts": recent_alerts,
-        "top_ips": top_ips,
-        "severity_stats": severity_stats,
+        "severity_stats": alert_severity_stats,
+        "chart_data": chart_data,
     })
 
 
@@ -356,3 +389,46 @@ async def resolve_alert_route(
     await db.commit()
     log.info(f"[ADMIN] Alerte {alert_id} résolue par {user_data['username']}")
     return RedirectResponse(url="/admin/alerts", status_code=302)
+
+# GET /admin/users/new — Formulaire création utilisateur
+@router.get("/users/new", response_class=HTMLResponse)
+async def new_user_page(
+    request: Request,
+    user_data: dict = Depends(require_role("admin", "directeur")),
+):
+    return templates.TemplateResponse("admin/new_user.html", {
+        "request": request,
+        "user": user_data,
+        "roles": ["admin", "directeur", "comptable", "utilisateur"],
+    })
+
+
+# POST /admin/users/new — Création
+@router.post("/users/new", response_class=HTMLResponse)
+async def create_user_admin(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user_data: dict = Depends(require_role("admin", "directeur")),
+):
+    from app.services.auth_service import create_user, UserRole
+    try:
+        await create_user(db, username=username, email=email,
+                         password=password, role=UserRole(role))
+        await db.commit()
+        return RedirectResponse(url="/admin/users?created=1", status_code=302)
+    except Exception as e:
+        error_str = str(e).lower()
+        if "unique" in error_str or "duplicate" in error_str:
+            error = "Ce nom d'utilisateur ou email est déjà pris."
+        else:
+            error = "Une erreur est survenue."
+        return templates.TemplateResponse("admin/new_user.html", {
+            "request": request,
+            "user": user_data,
+            "roles": ["admin", "directeur", "comptable", "utilisateur"],
+            "error": error,
+        })

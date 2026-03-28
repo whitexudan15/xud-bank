@@ -91,51 +91,64 @@ const LEVEL_COLORS = {
 
 function prependAlert(alert, feed) {
   if (!feed) return;
-  const color = LEVEL_COLORS[alert.alert_level] || '#6B7280';
+  const colors = {
+    LOW: 'var(--s-low)', MEDIUM: 'var(--s-med)',
+    HIGH: 'var(--s-hi)', CRITICAL: 'var(--s-crit)'
+  };
   const time = new Date(alert.timestamp).toLocaleTimeString('fr-FR');
   const div = document.createElement('div');
-  div.className = 'd-flex align-items-start gap-2 mb-2 p-2 rounded';
-  div.style.background = '#F8FAFC';
+  div.style.cssText = `display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.55rem;
+    padding:.65rem .8rem;background:rgba(255,255,255,.025);
+    border-radius:9px;border:1px solid var(--bdr2);`;
   div.innerHTML = `
-    <span class="badge text-white mt-1" style="background:${color};min-width:72px;">${alert.alert_level}</span>
+    <span class="bdg bdg-${alert.alert_level}" style="min-width:68px;justify-content:center;flex-shrink:0;">
+      ${alert.alert_level}
+    </span>
     <div>
-      <p class="small mb-0">${alert.message.substring(0, 80)}</p>
-      <small class="text-muted">${time}</small>
+      <p style="font-size:.8rem;color:var(--t1);margin:0 0 .1rem;">${alert.message.substring(0, 80)}</p>
+      <small style="color:var(--t3);font-size:.7rem;">${time}</small>
     </div>`;
   feed.prepend(div);
-  // Limite à 20 entrées
   while (feed.children.length > 20) feed.removeChild(feed.lastChild);
 }
 
 function prependEvent(event) {
   const tbody = document.getElementById('events-feed');
   if (!tbody) return;
-  const color = LEVEL_COLORS[event.severity] || '#6B7280';
   const time = new Date(event.timestamp).toLocaleTimeString('fr-FR');
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><span class="badge text-white" style="background:${color};font-size:.65rem;">${event.event_type.substring(0, 14)}</span></td>
-    <td class="small text-muted">${event.ip_address}</td>
-    <td class="small text-muted">${time}</td>`;
+    <td style="padding-left:1rem;">
+      <span class="bdg bdg-${event.severity}">${event.event_type.substring(0, 14)}</span>
+    </td>
+    <td style="font-size:.78rem;color:var(--t2);font-family:monospace;">${event.ip_address}</td>
+    <td style="font-size:.78rem;color:var(--t3);">${time}</td>`;
   tbody.prepend(tr);
   while (tbody.children.length > 15) tbody.removeChild(tbody.lastChild);
 }
 
 function showToast(alert) {
-  const color = LEVEL_COLORS[alert.alert_level] || '#6B7280';
+  const colors = {
+    LOW: 'var(--s-low)', MEDIUM: 'var(--s-med)',
+    HIGH: 'var(--s-hi)', CRITICAL: 'var(--s-crit)'
+  };
+  const color = colors[alert.alert_level] || 'var(--t2)';
   const toast = document.createElement('div');
   toast.style.cssText = `
-    position:fixed;top:20px;right:20px;z-index:9999;
-    background:#fff;border-left:4px solid ${color};
-    border-radius:8px;padding:12px 16px;min-width:280px;
-    box-shadow:0 4px 12px rgba(0,0,0,.15);
-    animation:slideIn .3s ease;`;
+    position:fixed;top:72px;right:20px;z-index:9999;
+    background:var(--bg-card);
+    border:1px solid var(--bdr2);
+    border-left:4px solid ${color};
+    border-radius:12px;padding:14px 18px;min-width:300px;
+    box-shadow:0 8px 32px rgba(0,0,0,.4);
+    backdrop-filter:blur(20px);
+    animation:fadeSlideUp .3s var(--ease);`;
   toast.innerHTML = `
-    <div class="d-flex align-items-center gap-2">
-      <span class="badge text-white" style="background:${color};">${alert.alert_level}</span>
-      <span class="small fw-semibold">Nouvelle alerte</span>
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+      <span class="bdg bdg-${alert.alert_level}">${alert.alert_level}</span>
+      <span style="font-size:.82rem;font-weight:700;color:var(--t1);font-family:'Syne',sans-serif;">Nouvelle alerte</span>
     </div>
-    <p class="small text-muted mb-0 mt-1">${alert.message.substring(0, 80)}</p>`;
+    <p style="font-size:.78rem;color:var(--t2);margin:0;">${alert.message.substring(0, 90)}</p>`;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
 }
