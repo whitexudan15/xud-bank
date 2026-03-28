@@ -7,20 +7,21 @@ let ws = null;
 let reconnectDelay = 3000;
 
 function initWS(url) {
-  const dot    = document.getElementById('ws-dot');
+  const dot = document.getElementById('ws-dot');
   const status = document.getElementById('ws-status');
-  const feed   = document.getElementById('alert-feed');
+  const feed = document.getElementById('alert-feed');
 
   function connect() {
     ws = new WebSocket(url);
 
     ws.onopen = () => {
-      if (dot)    { dot.classList.add('connected'); }
-      if (status) { status.textContent = 'Connecté — alertes en temps réel'; }
+      if (dot) { dot.classList.add('connected'); }
+      if (status) { status.textContent = 'Connecté — temps réel'; }
       reconnectDelay = 3000;
     };
 
     ws.onmessage = (evt) => {
+      console.log("WS reçu:", evt.data);
       const msg = JSON.parse(evt.data);
 
       if (msg.type === 'init') {
@@ -30,14 +31,27 @@ function initWS(url) {
 
       } else if (msg.type === 'new_alert') {
         prependAlert(msg.alert, feed);
-        // Incrémente compteur alertes
+        // Incrémente compteur alertes actives
         const cnt = document.getElementById('alert-count');
         if (cnt) cnt.textContent = parseInt(cnt.textContent || 0) + 1;
-        // Notification visuelle
+        const statUnresolved = document.getElementById('stat-unresolved');
+        if (statUnresolved) statUnresolved.textContent = parseInt(statUnresolved.textContent || 0) + 1;
         showToast(msg.alert);
 
       } else if (msg.type === 'new_event') {
         prependEvent(msg.event);
+        // Incrémente compteur total événements
+        const statTotal = document.getElementById('stat-total-events');
+        if (statTotal) statTotal.textContent = parseInt(statTotal.textContent || 0) + 1;
+        // Incrémente HIGH+ si applicable
+        if (msg.event.severity === 'HIGH' || msg.event.severity === 'CRITICAL') {
+          const statHigh = document.getElementById('stat-high');
+          if (statHigh) statHigh.textContent = parseInt(statHigh.textContent || 0) + 1;
+        }
+        if (msg.event.severity === 'CRITICAL') {
+          const statCrit = document.getElementById('stat-critical');
+          if (statCrit) statCrit.textContent = parseInt(statCrit.textContent || 0) + 1;
+        }
 
       } else if (msg.type === 'heartbeat') {
         if (status) {
@@ -47,8 +61,8 @@ function initWS(url) {
     };
 
     ws.onclose = () => {
-      if (dot)    { dot.classList.remove('connected'); }
-      if (status) { status.textContent = `Reconnexion dans ${reconnectDelay/1000}s...`; }
+      if (dot) { dot.classList.remove('connected'); }
+      if (status) { status.textContent = `Reconnexion dans ${reconnectDelay / 1000}s...`; }
       setTimeout(connect, reconnectDelay);
       reconnectDelay = Math.min(reconnectDelay * 2, 30000);
     };
@@ -78,14 +92,14 @@ const LEVEL_COLORS = {
 function prependAlert(alert, feed) {
   if (!feed) return;
   const color = LEVEL_COLORS[alert.alert_level] || '#6B7280';
-  const time  = new Date(alert.timestamp).toLocaleTimeString('fr-FR');
-  const div   = document.createElement('div');
+  const time = new Date(alert.timestamp).toLocaleTimeString('fr-FR');
+  const div = document.createElement('div');
   div.className = 'd-flex align-items-start gap-2 mb-2 p-2 rounded';
   div.style.background = '#F8FAFC';
   div.innerHTML = `
     <span class="badge text-white mt-1" style="background:${color};min-width:72px;">${alert.alert_level}</span>
     <div>
-      <p class="small mb-0">${alert.message.substring(0,80)}</p>
+      <p class="small mb-0">${alert.message.substring(0, 80)}</p>
       <small class="text-muted">${time}</small>
     </div>`;
   feed.prepend(div);
@@ -97,10 +111,10 @@ function prependEvent(event) {
   const tbody = document.getElementById('events-feed');
   if (!tbody) return;
   const color = LEVEL_COLORS[event.severity] || '#6B7280';
-  const time  = new Date(event.timestamp).toLocaleTimeString('fr-FR');
-  const tr    = document.createElement('tr');
+  const time = new Date(event.timestamp).toLocaleTimeString('fr-FR');
+  const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><span class="badge text-white" style="background:${color};font-size:.65rem;">${event.event_type.substring(0,14)}</span></td>
+    <td><span class="badge text-white" style="background:${color};font-size:.65rem;">${event.event_type.substring(0, 14)}</span></td>
     <td class="small text-muted">${event.ip_address}</td>
     <td class="small text-muted">${time}</td>`;
   tbody.prepend(tr);
@@ -121,7 +135,7 @@ function showToast(alert) {
       <span class="badge text-white" style="background:${color};">${alert.alert_level}</span>
       <span class="small fw-semibold">Nouvelle alerte</span>
     </div>
-    <p class="small text-muted mb-0 mt-1">${alert.message.substring(0,80)}</p>`;
+    <p class="small text-muted mb-0 mt-1">${alert.message.substring(0, 80)}</p>`;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
 }

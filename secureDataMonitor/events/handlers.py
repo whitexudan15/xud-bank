@@ -23,6 +23,7 @@ from app.database import AsyncSessionLocal
 from app.models.security_event import EventType, SeverityLevel
 from secureDataMonitor.services import detection, logger as sec_logger
 from secureDataMonitor.events.dispatcher import dispatcher
+from secureDataMonitor.routers.api_alerts import broadcast_alert, broadcast_event
 
 log = logging.getLogger("secureDataMonitor.handlers")
 
@@ -46,7 +47,7 @@ async def handle_login_success(data: dict) -> None:
     Actions   : log, reset compteur échecs
     """
     async with AsyncSessionLocal() as db:
-        await sec_logger.log_event(
+        event = await sec_logger.log_event(
             db=db,
             event_type=EventType.LOGIN_SUCCESS,
             severity=SeverityLevel.LOW,
@@ -55,6 +56,7 @@ async def handle_login_success(data: dict) -> None:
             description=f"Connexion réussie pour {data.get('username')}",
             action_taken="Reset compteur échecs",
         )
+        await broadcast_event(event)
         await detection.reset_failed_attempts(db, data["username"])
         await db.commit()
 
@@ -88,16 +90,18 @@ async def handle_failed_login(data: dict) -> None:
             description=f"Échec connexion #{data.get('attempt', '?')} pour '{data.get('username')}' depuis {data['ip']}",
             action_taken=action,
         )
+        await broadcast_event(event)
 
         if brute_force:
             # Verrouillage du compte
             await detection.lock_account(db, data["username"])
-            await sec_logger.create_alert(
+            alert = await sec_logger.create_alert(
                 db=db,
                 level=SeverityLevel.MEDIUM,
                 source_event_id=event.id,
                 message=f"Brute force détecté : compte '{data['username']}' verrouillé après 3 échecs depuis {data['ip']}",
             )
+            await broadcast_alert(alert)
             # Émet un événement secondaire de verrouillage
             await dispatcher.emit("account_locked", {
                 "username": data["username"],
@@ -124,6 +128,7 @@ async def handle_account_locked(data: dict) -> None:
             description=f"Compte '{data['username']}' verrouillé suite à brute force depuis {data['ip']}",
             action_taken="Compte verrouillé (is_locked=TRUE)",
         )
+        await broadcast_event(event)
         await db.commit()
 
     log.warning(f"[LOGIN_LOCKED] Compte {data['username']} verrouillé")
@@ -148,6 +153,7 @@ async def handle_unknown_user(data: dict) -> None:
             description=f"Tentative sur utilisateur inexistant : '{data['username']}' depuis {data['ip']}",
             action_taken="Tracking IP activé",
         )
+        await broadcast_event(event)
 
         # Vérifie Règle 5 (énumération)
         enum_detected = await detection.check_enumeration(db, ip=data["ip"])
@@ -181,12 +187,14 @@ async def handle_unauthorized(data: dict) -> None:
             description=f"Accès non autorisé à '{data.get('path')}' par '{data.get('username')}' (rôle={data.get('role')})",
             action_taken="Redirection 403",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.HIGH,
             source_event_id=event.id,
             message=f"Accès non autorisé à {data.get('path')} par {data.get('username')} (rôle={data.get('role')})",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.error(f"[UNAUTHORIZED] {data.get('username')} → {data.get('path')}")
@@ -207,12 +215,14 @@ async def handle_privilege_escalation(data: dict) -> None:
             description=f"Tentative d'élévation de privilège par '{data.get('username')}' : {data.get('detail')}",
             action_taken="Requête bloquée",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.HIGH,
             source_event_id=event.id,
             message=f"Élévation de privilège détectée pour {data.get('username')}",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.error(f"[PRIV_ESCALATION] {data.get('username')}")
@@ -237,12 +247,14 @@ async def handle_rate_limit(data: dict) -> None:
             description=f"Pic de requêtes détecté depuis {data['ip']} : {data.get('count')} req en {data.get('window')}s",
             action_taken="Throttle IP appliqué",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.MEDIUM,
             source_event_id=event.id,
             message=f"Rate limit dépassé depuis {data['ip']} ({data.get('count')} req/{data.get('window')}s)",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.warning(f"[RATE_LIMIT] {data['ip']} — {data.get('count')} requêtes")
@@ -263,12 +275,14 @@ async def handle_mass_access(data: dict) -> None:
             description=f"Exfiltration massive détectée : {data.get('count')} consultations en {data.get('window')}s par '{data.get('username')}'",
             action_taken="Alerte CRITICAL créée, session signalée",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.CRITICAL,
             source_event_id=event.id,
             message=f"EXFILTRATION MASSIVE : {data.get('count')} accès aux données sensibles en moins d'1 minute par {data.get('username')} depuis {data['ip']}",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.critical(f"[MASS_ACCESS] {data.get('username')} — {data.get('count')} accès")
@@ -289,12 +303,14 @@ async def handle_off_hours(data: dict) -> None:
             description=f"Accès hors horaires ({data.get('hour')}h UTC) par '{data.get('username')}'",
             action_taken="Événement loggé",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.LOW,
             source_event_id=event.id,
             message=f"Connexion hors plage autorisée (07h-20h) : {data.get('username')} à {data.get('hour')}h UTC",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.info(f"[OFF_HOURS] {data.get('username')} à {data.get('hour')}h UTC")
@@ -319,12 +335,14 @@ async def handle_sql_injection(data: dict) -> None:
             description=f"Pattern SQL injection dans champ '{data.get('field')}' : {data.get('payload')[:100]}",
             action_taken="Requête rejetée immédiatement",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.HIGH,
             source_event_id=event.id,
             message=f"SQL Injection détectée depuis {data['ip']} — payload: {data.get('payload')[:80]}",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.error(f"[SQL_INJECTION] {data['ip']} — champ: {data.get('field')}")
@@ -345,12 +363,14 @@ async def handle_enum_attempt(data: dict) -> None:
             description=f"Énumération d'identifiants détectée depuis {data['ip']} : plusieurs comptes ciblés en moins de 5 minutes",
             action_taken="IP signalée, alerte MEDIUM créée",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.MEDIUM,
             source_event_id=event.id,
             message=f"Tentative d'énumération depuis {data['ip']} : {data.get('count', 3)} usernames différents en 5 minutes",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.warning(f"[ENUM_ATTEMPT] IP {data['ip']}")
@@ -371,12 +391,14 @@ async def handle_suspicious_url(data: dict) -> None:
             description=f"URL suspecte détectée depuis {data['ip']} : {data.get('url')}",
             action_taken="Requête bloquée (403)",
         )
-        await sec_logger.create_alert(
+        await broadcast_event(event)
+        alert = await sec_logger.create_alert(
             db=db,
             level=SeverityLevel.HIGH,
             source_event_id=event.id,
             message=f"URL suspecte / path traversal depuis {data['ip']} : {data.get('url')}",
         )
+        await broadcast_alert(alert)
         await db.commit()
 
     log.error(f"[SUSPICIOUS_URL] {data['ip']} → {data.get('url')}")
