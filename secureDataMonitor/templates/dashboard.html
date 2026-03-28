@@ -5,9 +5,8 @@
 <style>
     .dash-grid {
         display: grid;
-        grid-template-rows: auto auto 1fr;
+        grid-template-rows: auto auto auto;
         gap: 1.1rem;
-        height: 100%;
     }
 
     .stats-row {
@@ -26,18 +25,18 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
-        min-height: 0;
     }
 
     .bot-row .xcard {
-        overflow: hidden;
         display: flex;
         flex-direction: column;
+        min-height: 320px;
     }
 
     .bot-row .xcard .xcard-body-flush {
         flex: 1;
-        overflow: auto;
+        overflow-y: auto;
+        max-height: 400px;
     }
 </style>
 {% endblock %}
@@ -64,7 +63,7 @@
     </nav>
 
     <!-- MAIN -->
-    <main class="xmain" style="overflow:hidden;display:flex;flex-direction:column;">
+    <main class="xmain">
 
         <!-- Header -->
         <div
@@ -82,7 +81,7 @@
             </div>
         </div>
 
-        <div class="dash-grid" style="flex:1;min-height:0;">
+        <div class="dash-grid">
 
             <!-- STATS -->
             <div class="stats-row stagger">
