@@ -27,7 +27,6 @@ engine: AsyncEngine = create_async_engine(
     pool_recycle=1800,              # Recycle connexions toutes les 30 min (Supabase)
     pool_pre_ping=True,             # Vérifie la connexion avant utilisation
     connect_args={
-        "ssl": "require",           # SSL obligatoire pour Supabase
         "server_settings": {
             "application_name": "xud-bank",
         },
