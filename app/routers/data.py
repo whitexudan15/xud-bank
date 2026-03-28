@@ -8,7 +8,7 @@ import json
 import logging
 from fastapi import APIRouter, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templates_config import templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -28,7 +28,6 @@ settings = get_settings()
 log = logging.getLogger("xud_bank.router.data")
 
 router = APIRouter(prefix="/data", tags=["data"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 # ════════════════════════════════════════════════════════════

@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.templates_config import templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc
 
@@ -24,7 +24,6 @@ settings = get_settings()
 log = logging.getLogger("xud_bank.router.admin")
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-templates = Jinja2Templates(directory="secureDataMonitor/templates")
 
 
 # ════════════════════════════════════════════════════════════
