@@ -432,3 +432,32 @@ async def create_user_admin(
             "roles": ["admin", "directeur", "comptable", "utilisateur"],
             "error": error,
         })
+
+
+# ════════════════════════════════════════════════════════════
+# GET /admin/logs/raw — Affichage brut du fichier de log
+# ════════════════════════════════════════════════════════════
+
+@router.get("/logs/raw")
+async def view_raw_logs(
+    request: Request,
+    user_data: dict = Depends(require_role("admin", "directeur")),
+):
+    """
+    Renvoie le contenu brut du fichier security.log
+    Affichage sous forme de texte brut dans le navigateur.
+    """
+    import os
+    from fastapi.responses import PlainTextResponse
+    
+    log_file = settings.LOG_FILE_PATH
+    if os.path.exists(log_file):
+        # Lecture du fichier (pour de très gros logs, FileResponse serait mieux mais pour notre TP ça ira)
+        with open(log_file, "r", encoding="utf-8") as f:
+            content = f.read()
+            # Si le fichier est vide, on renvoie une phrase propre
+            if not content.strip():
+                content = "--- Fichier de log vide ---"
+        return PlainTextResponse(content)
+    
+    return PlainTextResponse("Erreur : Fichier de log introuvable sur le serveur.", status_code=404)
