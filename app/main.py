@@ -15,7 +15,7 @@ from starlette.templating import Jinja2Templates
 from app.config import get_settings
 from app.database import check_db_connection, close_db
 from secureDataMonitor.events.handlers import register_all_handlers
-from secureDataMonitor.services.logger import setup_file_logger
+from secureDataMonitor.services.logger import setup_file_logger, stop_file_logger
 
 settings = get_settings()
 log = logging.getLogger("xud_bank")
@@ -57,7 +57,9 @@ async def lifespan(app: FastAPI):
     yield
 
     await close_db()
+    stop_file_logger()
     log.info("✓ Pool de connexions BDD fermé proprement")
+    log.info("✓ Logger fichier arrêté proprement")
 
 
 # ════════════════════════════════════════════════════════════
@@ -189,6 +191,12 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         from secureDataMonitor.events.dispatcher import dispatcher
 
         path = request.url.path
+
+        # ignorer la vérification d'url pour les fichiers static
+        if path.startswith("/static/"):
+            response = await call_next(request)
+            response.headers["Cache-Control"] = "public, max-age=3600"
+            return response
 
         if check_suspicious_url(path):
             await dispatcher.emit("suspicious_url", {

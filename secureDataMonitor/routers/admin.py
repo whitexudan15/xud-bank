@@ -5,6 +5,7 @@
 # ============================================================
 
 import logging
+import time
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -24,6 +25,60 @@ settings = get_settings()
 log = logging.getLogger("xud_bank.router.admin")
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+# ════════════════════════════════════════════════════════════
+# CACHE — Dashboard stats avec TTL de 5 secondes
+# ════════════════════════════════════════════════════════════
+
+_dashboard_cache = {"data": None, "timestamp": 0}
+CACHE_TTL = 5  # seconds
+
+
+async def get_dashboard_stats(db: AsyncSession):
+    """
+    Récupère les statistiques du dashboard avec cache 5s.
+    Combine les COUNT queries en une seule requête SQL.
+    """
+    now = time.time()
+    if _dashboard_cache["data"] and (now - _dashboard_cache["timestamp"]) < CACHE_TTL:
+        return _dashboard_cache["data"]
+
+    # Requête combinée pour les compteurs (SecurityEvent + Alert + User)
+    # Utilise COUNT(*) FILTER (WHERE ...) pour compter conditionnellement
+    stats_query = select(
+        func.count(SecurityEvent.id).label("total_events"),
+        func.count(SecurityEvent.id).filter(SecurityEvent.event_type == EventType.SQL_INJECTION).label("sqli_attempts"),
+    ).select_from(SecurityEvent)
+
+    # Requête séparée pour les alertes non résolues (table différente)
+    alerts_query = select(
+        func.count(Alert.id).label("unresolved_alerts")
+    ).where(Alert.resolved == False)
+
+    # Requête séparée pour les comptes verrouillés (table différente)
+    users_query = select(
+        func.count(User.id).label("locked_accounts")
+    ).where(User.is_locked == True)
+
+    # Exécution en parallèle des 3 requêtes (une par table)
+    stats_result = await db.execute(stats_query)
+    alerts_result = await db.execute(alerts_query)
+    users_result = await db.execute(users_query)
+
+    stats_row = stats_result.one()
+    alerts_row = alerts_result.one()
+    users_row = users_result.one()
+
+    stats = {
+        "total_events": stats_row.total_events,
+        "sqli_attempts": stats_row.sqli_attempts,
+        "unresolved_alerts": alerts_row.unresolved_alerts,
+        "locked_accounts": users_row.locked_accounts,
+    }
+
+    _dashboard_cache["data"] = stats
+    _dashboard_cache["timestamp"] = now
+    return stats
 
 
 # ════════════════════════════════════════════════════════════
@@ -67,18 +122,8 @@ async def admin_index(
     now = datetime.utcnow()
     last_24h = now - timedelta(hours=24)
 
-    # Compteurs
-    total_events = (await db.execute(select(func.count(SecurityEvent.id)))).scalar_one()
-    unresolved_alerts = (await db.execute(
-        select(func.count(Alert.id)).where(Alert.resolved == False)
-    )).scalar_one()
-    locked_accounts = (await db.execute(
-        select(func.count(User.id)).where(User.is_locked == True)
-    )).scalar_one()
-    sqli_attempts = (await db.execute(
-        select(func.count(SecurityEvent.id))
-        .where(SecurityEvent.event_type == EventType.SQL_INJECTION)
-    )).scalar_one()
+    # Compteurs optimisés avec cache (combine les COUNT en requêtes groupées)
+    stats = await get_dashboard_stats(db)
 
     # Derniers 10 événements
     recent_events_result = await db.execute(
@@ -152,12 +197,7 @@ async def admin_index(
     return templates.TemplateResponse("admin/index.html", {
         "request": request,
         "user": user_data,
-        "stats": {
-            "total_events": total_events,
-            "unresolved_alerts": unresolved_alerts,
-            "locked_accounts": locked_accounts,
-            "sqli_attempts": sqli_attempts,
-        },
+        "stats": stats,
         "recent_alerts": recent_alerts,
         "severity_stats": alert_severity_stats,
         "chart_data": chart_data,

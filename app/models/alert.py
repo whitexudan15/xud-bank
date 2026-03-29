@@ -5,7 +5,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Text, Boolean, DateTime, Enum as SAEnum, ForeignKey
+from sqlalchemy import Text, Boolean, DateTime, Enum as SAEnum, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -23,7 +23,11 @@ class Alert(Base):
     resolved        : Mapped[bool]           = mapped_column(Boolean, nullable=False, default=False)
 
     # Relation ORM (accès via alert.source_event)
-    source_event = relationship("SecurityEvent", backref="alerts", lazy="selectin")
+    source_event = relationship("SecurityEvent", backref="alerts", lazy="joined")
+
+    __table_args__ = (
+        Index('idx_alerts_resolved_timestamp', 'resolved', 'timestamp'),
+    )
 
     def __repr__(self) -> str:
         return f"<Alert [{self.alert_level}] resolved={self.resolved} {self.timestamp}>"

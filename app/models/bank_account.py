@@ -32,7 +32,7 @@ class BankAccount(Base):
     created_at     : Mapped[datetime]                = mapped_column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
 
     # Relation ORM (accès via account.owner)
-    owner = relationship("User", backref="accounts", lazy="selectin")
+    owner = relationship("User", backref="accounts", lazy="joined")
 
     def __repr__(self) -> str:
         return f"<BankAccount {self.id_compte} [{self.classification}] solde={self.solde}>"

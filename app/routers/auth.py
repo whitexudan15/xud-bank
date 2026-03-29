@@ -27,6 +27,21 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 # ════════════════════════════════════════════════════════════
+# HELPER — Validation centralisée des entrées
+# ════════════════════════════════════════════════════════════
+
+def validate_inputs(fields: dict) -> tuple[bool, str, str]:
+    """
+    Valide plusieurs champs en une seule passe.
+    Retourne: (is_violation: bool, field_name: str, value: str)
+    """
+    for field_name, value in fields.items():
+        if check_sql_injection(value):
+            return True, field_name, value
+    return False, "", ""
+
+
+# ════════════════════════════════════════════════════════════
 # GET /auth/login
 # ════════════════════════════════════════════════════════════
 
@@ -51,17 +66,17 @@ async def login(
 ):
     ip = request.client.host
 
-    # ── Détection SQL injection ───────────────────────────────
-    for field, value in [("email", email), ("password", password)]:
-        if check_sql_injection(value):
-            asyncio.create_task(dispatcher.emit("sql_injection", {
-                "ip": ip, "username": email, "field": field, "payload": value,
-            }))
-            return templates.TemplateResponse(
-                "login.html",
-                {"request": request, "error": "Identifiants invalides."},
-                status_code=400,
-            )
+    # ── Détection SQL injection (validation centralisée) ──────
+    is_violation, field, value = validate_inputs({"email": email, "password": password})
+    if is_violation:
+        asyncio.create_task(dispatcher.emit("sql_injection", {
+            "ip": ip, "username": email, "field": field, "payload": value,
+        }))
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Identifiants invalides."},
+            status_code=400,
+        )
 
     # ── Détection caractères spéciaux ─────────────────────────
     if check_special_characters(email, "email"):
@@ -164,16 +179,19 @@ async def register(
 ):
     ip = request.client.host
 
-    for field, value in [("username", username), ("email", email), ("password", password)]:
-        if check_sql_injection(value):
-            asyncio.create_task(dispatcher.emit("sql_injection", {
-                "ip": ip, "username": username, "field": field, "payload": value,
-            }))
-            return templates.TemplateResponse(
-                "register.html",
-                {"request": request, "error": "Données invalides."},
-                status_code=400,
-            )
+    # ── Détection SQL injection (validation centralisée) ──────
+    is_violation, field, value = validate_inputs({
+        "username": username, "email": email, "password": password
+    })
+    if is_violation:
+        asyncio.create_task(dispatcher.emit("sql_injection", {
+            "ip": ip, "username": username, "field": field, "payload": value,
+        }))
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Données invalides."},
+            status_code=400,
+        )
 
     try:
         user = await create_user(db, username=username, email=email, password=password)

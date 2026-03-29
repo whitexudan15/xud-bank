@@ -5,7 +5,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, DateTime, Enum as SAEnum
+from sqlalchemy import String, Text, DateTime, Enum as SAEnum, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, INET as PGINET
 from app.database import Base
@@ -52,6 +52,12 @@ class SecurityEvent(Base):
     description  : Mapped[str]              = mapped_column(Text, nullable=False)
     status       : Mapped[EventStatus]       = mapped_column(SAEnum(EventStatus, name="event_status", create_type=False), nullable=False, default=EventStatus.open)
     action_taken : Mapped[str | None]        = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index('idx_security_events_timestamp', 'timestamp'),
+        Index('idx_security_events_type_timestamp', 'event_type', 'timestamp'),
+        Index('idx_security_events_severity_timestamp', 'severity', 'timestamp'),
+    )
 
     def __repr__(self) -> str:
         return f"<SecurityEvent {self.event_type} [{self.severity}] {self.timestamp}>"

@@ -118,5 +118,34 @@ CREATE INDEX IF NOT EXISTS idx_bank_accounts_owner
     ON bank_accounts (owner_id);
 
 -- ============================================================
+-- INDEXES ADDITIONNELS POUR PERFORMANCE
+-- ============================================================
+
+-- LoginAttempt: brute force detection queries
+CREATE INDEX IF NOT EXISTS idx_login_attempts_username_success_time
+    ON login_attempts (username_tried, success, timestamp);
+
+-- SecurityEvent: dashboard filtering and time-range queries
+CREATE INDEX IF NOT EXISTS idx_security_events_timestamp
+    ON security_events (timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_security_events_type_timestamp
+    ON security_events (event_type, timestamp);
+
+CREATE INDEX IF NOT EXISTS idx_security_events_severity_timestamp
+    ON security_events (severity, timestamp);
+
+-- Alert: unresolved alerts queries
+CREATE INDEX IF NOT EXISTS idx_alerts_resolved_timestamp
+    ON alerts (resolved, timestamp);
+
+-- User: login lookup and locked user counts
+CREATE INDEX IF NOT EXISTS idx_users_email
+    ON users (email);
+
+CREATE INDEX IF NOT EXISTS idx_users_is_locked
+    ON users (is_locked);
+
+-- ============================================================
 -- FIN DU SCRIPT
 -- ============================================================

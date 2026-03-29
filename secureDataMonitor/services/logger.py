@@ -17,6 +17,7 @@ import uuid
 import logging
 import logging.handlers
 import os
+import queue
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,17 +29,23 @@ settings = get_settings()
 
 
 # ════════════════════════════════════════════════════════════
-# CONFIGURATION DU LOGGER FICHIER
+# CONFIGURATION DU LOGGER FICHIER (Async avec QueueHandler)
 # ════════════════════════════════════════════════════════════
+
+_queue_listener = None
+
 
 def setup_file_logger() -> logging.Logger:
     """
-    Configure le logger fichier avec rotation automatique.
+    Configure le logger fichier avec rotation automatique et QueueHandler
+    pour des opérations d'écriture non-bloquantes.
     Appelé une seule fois au démarrage dans main.py.
 
     Format structuré :
     2026-03-27 14:32:11 | MEDIUM | LOGIN_FAILED | jdoe | 192.168.1.45 | message
     """
+    global _queue_listener
+
     # Crée le dossier logs/ si inexistant
     os.makedirs(os.path.dirname(settings.LOG_FILE_PATH), exist_ok=True)
 
@@ -49,8 +56,8 @@ def setup_file_logger() -> logging.Logger:
     if file_logger.handlers:
         return file_logger
 
-    # Handler fichier avec rotation
-    handler = logging.handlers.RotatingFileHandler(
+    # Handler fichier avec rotation (sera utilisé par le QueueListener)
+    file_handler = logging.handlers.RotatingFileHandler(
         filename=settings.LOG_FILE_PATH,
         maxBytes=settings.LOG_MAX_BYTES,
         backupCount=settings.LOG_BACKUP_COUNT,
@@ -61,16 +68,35 @@ def setup_file_logger() -> logging.Logger:
         fmt="%(asctime)s | %(levelname)-8s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    handler.setFormatter(formatter)
-    file_logger.addHandler(handler)
+    file_handler.setFormatter(formatter)
 
-    # Handler console (dev)
+    # QueueHandler pour écriture asynchrone non-bloquante
+    log_queue = queue.Queue(-1)
+    queue_handler = logging.handlers.QueueHandler(log_queue)
+
+    # QueueListener traite les logs dans un thread séparé
+    _queue_listener = logging.handlers.QueueListener(
+        log_queue, file_handler, respect_handler_level=True
+    )
+    _queue_listener.start()
+
+    file_logger.addHandler(queue_handler)
+
+    # Handler console (dev) - direct, pas besoin de queue
     if settings.DEBUG:
         console = logging.StreamHandler()
         console.setFormatter(formatter)
         file_logger.addHandler(console)
 
     return file_logger
+
+
+def stop_file_logger():
+    """Arrête proprement le QueueListener au shutdown de l'application."""
+    global _queue_listener
+    if _queue_listener:
+        _queue_listener.stop()
+        _queue_listener = None
 
 
 # Instance du logger fichier

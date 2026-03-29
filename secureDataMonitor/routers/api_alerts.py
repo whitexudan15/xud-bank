@@ -14,6 +14,7 @@
 import json
 import asyncio
 import logging
+import time
 from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.responses import JSONResponse
@@ -25,6 +26,49 @@ from app.models.alert import Alert
 from app.models.security_event import SecurityEvent, SeverityLevel
 from app.services.auth_service import get_current_user_data
 from app.config import get_settings
+
+# Cache in-memory pour l'état initial WebSocket (5 secondes TTL)
+_ws_initial_cache = {"data": None, "timestamp": 0}
+WS_CACHE_TTL = 5
+
+
+async def get_cached_ws_initial(db):
+    """
+    Récupère l'état initial pour WebSocket avec cache 5s.
+    Évite les requêtes BDD répétées à chaque connexion client.
+    """
+    global _ws_initial_cache
+    now = time.time()
+    if _ws_initial_cache["data"] and (now - _ws_initial_cache["timestamp"]) < WS_CACHE_TTL:
+        return _ws_initial_cache["data"]
+
+    # Dernières 5 alertes non résolues
+    alerts_result = await db.execute(
+        select(Alert)
+        .where(Alert.resolved == False)
+        .order_by(desc(Alert.timestamp))
+        .limit(5)
+    )
+    recent_alerts = alerts_result.scalars().all()
+
+    # Stats rapides
+    unresolved_count = (await db.execute(
+        select(func.count(Alert.id)).where(Alert.resolved == False)
+    )).scalar_one()
+
+    total_events = (await db.execute(
+        select(func.count(SecurityEvent.id))
+    )).scalar_one()
+
+    result = {
+        "recent_alerts": recent_alerts,
+        "unresolved_count": unresolved_count,
+        "total_events": total_events,
+    }
+
+    _ws_initial_cache["data"] = result
+    _ws_initial_cache["timestamp"] = now
+    return result
 
 settings = get_settings()
 log = logging.getLogger("xud_bank.ws")
@@ -148,31 +192,15 @@ async def websocket_alerts(websocket: WebSocket):
     await ws_manager.connect(websocket)
 
     try:
-        # Envoie l'état initial au client qui vient de se connecter
+        # Envoie l'état initial au client qui vient de se connecter (avec cache)
         async with AsyncSessionLocal() as db:
-            # Dernières 5 alertes non résolues
-            alerts_result = await db.execute(
-                select(Alert)
-                .where(Alert.resolved == False)
-                .order_by(desc(Alert.timestamp))
-                .limit(5)
-            )
-            recent_alerts = alerts_result.scalars().all()
-
-            # Stats rapides
-            unresolved_count = (await db.execute(
-                select(func.count(Alert.id)).where(Alert.resolved == False)
-            )).scalar_one()
-
-            total_events = (await db.execute(
-                select(func.count(SecurityEvent.id))
-            )).scalar_one()
+            initial_data = await get_cached_ws_initial(db)
 
         await ws_manager.send_to(websocket, {
             "type": "init",
             "stats": {
-                "unresolved_alerts": unresolved_count,
-                "total_events": total_events,
+                "unresolved_alerts": initial_data["unresolved_count"],
+                "total_events": initial_data["total_events"],
                 "connected_clients": ws_manager.count,
             },
             "recent_alerts": [
@@ -182,7 +210,7 @@ async def websocket_alerts(websocket: WebSocket):
                     "alert_level": a.alert_level.value,
                     "message": a.message[:100],
                 }
-                for a in recent_alerts
+                for a in initial_data["recent_alerts"]
             ],
         })
 

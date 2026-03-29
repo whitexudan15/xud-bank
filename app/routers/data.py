@@ -21,7 +21,6 @@ from secureDataMonitor.events.dispatcher import dispatcher
 from secureDataMonitor.services.detection import (
     record_data_access,
     check_sql_injection,
-    check_suspicious_url,
 )
 
 settings = get_settings()
@@ -37,25 +36,13 @@ router = APIRouter(prefix="/data", tags=["data"])
 async def _check_request_security(request: Request, user_data: dict) -> None:
     """
     Vérifie chaque requête entrante :
-    - URL suspecte (path traversal, fichiers sensibles)
-    - Paramètres suspects
+    - Paramètres suspects (query params)
     Émet les événements appropriés si détection.
+    Note: Les URL suspects sont déjà vérifiées par le SecurityMiddleware.
     """
     ip = request.client.host
-    full_path = request.url.path
 
-    if check_suspicious_url(full_path):
-        await dispatcher.emit("suspicious_url", {
-            "ip": ip,
-            "url": full_path,
-            "username": user_data.get("username"),
-        })
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Requête bloquée.",
-        )
-
-    # Vérifie les query params
+    # Vérifie les query params (user input) - pas couvert par le middleware
     for key, value in request.query_params.items():
         if check_sql_injection(value):
             await dispatcher.emit("sql_injection", {
@@ -133,24 +120,24 @@ async def list_accounts(
     result = await db.execute(query)
     accounts = result.scalars().all()
 
-    # Désérialise l'historique JSON pour l'affichage
+    # Désérialise l'historique JSON pour l'affichage (efficace : parsing conditionnel)
     accounts_data = []
     for acc in accounts:
-        acc_dict = {
+        historique = []
+        if acc.historique:
+            try:
+                historique = json.loads(acc.historique)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        accounts_data.append({
             "id": str(acc.id),
             "id_compte": acc.id_compte,
             "titulaire": acc.titulaire,
             "solde": float(acc.solde),
             "classification": acc.classification.value,
             "created_at": acc.created_at,
-            "historique": [],
-        }
-        if acc.historique:
-            try:
-                acc_dict["historique"] = json.loads(acc.historique)
-            except (json.JSONDecodeError, TypeError):
-                acc_dict["historique"] = []
-        accounts_data.append(acc_dict)
+            "historique": historique,
+        })
 
     log.info(f"[DATA] {username} ({role}) a consulté {len(accounts_data)} compte(s) depuis {ip}")
 

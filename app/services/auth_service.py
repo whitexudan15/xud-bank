@@ -204,7 +204,7 @@ def get_current_user_data(request: Request) -> dict:
 def require_role(*roles: str):
     """
     Dependency FastAPI : vérifie le rôle de l'utilisateur connecté.
-    Usage : Depends(require_role("admin", "analyste"))
+    Usage : Depends(require_role("admin", "directeur"))
 
     Exemple :
         @router.get("/admin/")

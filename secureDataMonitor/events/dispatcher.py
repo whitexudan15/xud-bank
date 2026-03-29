@@ -32,8 +32,8 @@ class EventDispatcher:
     """
 
     def __init__(self):
-        # { event_name: [handler1, handler2, ...] }
         self._listeners: dict[str, list[Callable]] = defaultdict(list)
+        self._background_tasks: set[asyncio.Task] = set()
 
     # ── Abonnement ────────────────────────────────────────────
     def subscribe(self, event_name: str, handler: Callable) -> None:
@@ -57,8 +57,8 @@ class EventDispatcher:
     async def emit(self, event_name: str, data: dict[str, Any]) -> None:
         """
         Publie un événement et appelle tous les handlers abonnés.
-        Les handlers s'exécutent de façon concurrente (asyncio.gather).
-        En cas d'erreur dans un handler, les autres continuent.
+        Les handlers s'exécutent en arrière-plan (fire-and-forget).
+        Cette méthode retourne immédiatement sans attendre les handlers.
 
         Args:
             event_name : nom de l'événement
@@ -72,16 +72,17 @@ class EventDispatcher:
 
         logger.debug(f"Émission '{event_name}' → {len(handlers)} handler(s)")
 
-        # Exécution concurrente de tous les handlers
-        results = await asyncio.gather(
-            *[self._safe_call(handler, event_name, data) for handler in handlers],
-            return_exceptions=True
-        )
+        # Fire-and-forget: lance chaque handler en tâche de fond
+        for handler in handlers:
+            task = asyncio.create_task(self._safe_call(handler, event_name, data))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._task_done)
 
-        # Log des erreurs sans interrompre le flux
-        for result in results:
-            if isinstance(result, Exception):
-                logger.error(f"Erreur dans handler pour '{event_name}' : {result}", exc_info=result)
+    def _task_done(self, task: asyncio.Task) -> None:
+        """Callback appelé quand une tâche de handler se termine."""
+        self._background_tasks.discard(task)
+        if task.exception():
+            logger.error(f"Erreur dans handler de tâche : {task.exception()}")
 
     async def _safe_call(self, handler: Callable, event_name: str, data: dict) -> None:
         """Appelle un handler avec gestion d'erreur isolée."""

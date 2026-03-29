@@ -6,7 +6,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime
+from sqlalchemy import String, Boolean, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, INET as PGINET
 from app.database import Base
@@ -20,6 +20,10 @@ class LoginAttempt(Base):
     username_tried : Mapped[str]        = mapped_column(String(50), nullable=False)
     timestamp      : Mapped[datetime]   = mapped_column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
     success        : Mapped[bool]       = mapped_column(Boolean, nullable=False)
+
+    __table_args__ = (
+        Index('idx_login_attempts_username_success_time', 'username_tried', 'success', 'timestamp'),
+    )
 
     def __repr__(self) -> str:
         status = "OK" if self.success else "FAIL"

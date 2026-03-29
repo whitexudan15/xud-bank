@@ -21,8 +21,8 @@ settings = get_settings()
 engine: AsyncEngine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,            # Log SQL en mode debug uniquement
-    pool_size=5,                    # Connexions simultanées maintenues
-    max_overflow=10,                # Connexions supplémentaires si pool plein
+    pool_size=20,                   # Connexions simultanées maintenues
+    max_overflow=20,                # Connexions supplémentaires si pool plein
     pool_timeout=30,                # Secondes avant timeout d'acquisition
     pool_recycle=1800,              # Recycle connexions toutes les 30 min (Railway)
     pool_pre_ping=True,             # Vérifie la connexion avant utilisation

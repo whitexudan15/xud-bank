@@ -5,7 +5,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, Integer, DateTime, Enum as SAEnum
+from sqlalchemy import String, Boolean, Integer, DateTime, Enum as SAEnum, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -31,6 +31,11 @@ class User(Base):
     failed_attempts : Mapped[int]               = mapped_column(Integer, nullable=False, default=0)
     last_failed_at  : Mapped[datetime | None]   = mapped_column(DateTime(timezone=False), nullable=True)
     created_at      : Mapped[datetime]          = mapped_column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_users_email', 'email'),
+        Index('idx_users_is_locked', 'is_locked'),
+    )
 
     def __repr__(self) -> str:
         return f"<User {self.username} [{self.role}] locked={self.is_locked}>"
