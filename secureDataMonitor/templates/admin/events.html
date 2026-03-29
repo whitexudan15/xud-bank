@@ -131,10 +131,80 @@
 {% block extra_js %}
 <script>
     const ws = new WebSocket("ws://{{ request.headers.get('host') }}/ws/alerts");
+    const tbody = document.querySelector('.xtable tbody');
+    let pendingEvents = [];
+    let updateRequested = false;
+    
+    function flushEvents() {
+        if (!tbody || pendingEvents.length === 0) return;
+        const frag = document.createDocumentFragment();
+        pendingEvents.forEach(e => {
+            const tr = document.createElement('tr');
+            
+            // Format timestamp matching logic '%Y-%m-%d %H:%M:%S'
+            let dateStr = "";
+            try {
+                const d = new Date(e.timestamp);
+                dateStr = d.getFullYear() + '-' +
+                    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(d.getDate()).padStart(2, '0') + ' ' +
+                    String(d.getHours()).padStart(2, '0') + ':' +
+                    String(d.getMinutes()).padStart(2, '0') + ':' +
+                    String(d.getSeconds()).padStart(2, '0');
+            } catch (err) { dateStr = e.timestamp; }
+
+            // Extract values, handling potential objects/strings appropriately
+            const eventType = typeof e.event_type === 'object' ? e.event_type.value : e.event_type;
+            const severity = typeof e.severity === 'object' ? e.severity.value : e.severity;
+            const desc = e.description ? e.description.substring(0, 80) : '';
+            const status = typeof e.status === 'object' ? e.status.value : e.status;
+            
+            let statusBadge = `<span class="bdg" style="background:rgba(37,99,235,.1);color:#60A5FA;border:1px solid rgba(37,99,235,.2);">${status}</span>`;
+            if (status === 'open') {
+                statusBadge = `<span class="bdg" style="background:rgba(245,158,11,.1);color:var(--s-med);border:1px solid rgba(245,158,11,.2);">open</span>`;
+            } else if (status === 'closed') {
+                statusBadge = `<span class="bdg" style="background:rgba(16,185,129,.1);color:var(--s-low);border:1px solid rgba(16,185,129,.2);">closed</span>`;
+            }
+
+            tr.innerHTML = `
+                <td style="padding-left:1.4rem;font-family:monospace;font-size:.75rem;color:var(--t3);white-space:nowrap;">
+                    ${dateStr}
+                </td>
+                <td>
+                    <span style="display:inline-flex;align-items:center;font-size:.67rem;font-weight:700;
+                                 letter-spacing:.5px;text-transform:uppercase;padding:.17rem .58rem;border-radius:20px;
+                                 background:rgba(255,255,255,.05);color:var(--t2);border:1px solid var(--bdr2);
+                                 font-family:'Syne',sans-serif;white-space:nowrap;">
+                        ${eventType}
+                    </span>
+                </td>
+                <td><span class="bdg bdg-${severity}">${severity}</span></td>
+                <td style="font-size:.82rem;">${e.username || '—'}</td>
+                <td style="font-size:.78rem;color:var(--t2);font-family:monospace;">${e.ip_address || ''}</td>
+                <td style="max-width:260px;font-size:.8rem;color:var(--t2);">${desc}</td>
+                <td>${statusBadge}</td>
+            `;
+            frag.appendChild(tr);
+        });
+        
+        tbody.prepend(frag);
+        pendingEvents = [];
+        updateRequested = false;
+        
+        // Optionnel : ne garder que les 100 dernières lignes pour la perf
+        while (tbody.children.length > 100) {
+            tbody.removeChild(tbody.lastChild);
+        }
+    }
+
     ws.onmessage = (evt) => {
         const msg = JSON.parse(evt.data);
-        if (msg.type === 'new_alert' || msg.type === 'new_event') {
-            location.reload();
+        if (msg.type === 'new_event') {
+            pendingEvents.push(msg.event);
+            if (!updateRequested) {
+                updateRequested = true;
+                requestAnimationFrame(flushEvents);
+            }
         }
     };
 </script>

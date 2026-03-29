@@ -115,10 +115,85 @@
 {% block extra_js %}
 <script>
     const ws = new WebSocket("ws://{{ request.headers.get('host') }}/ws/alerts");
+    const tbody = document.querySelector('.xtable tbody');
+    // If the table shows "Aucune alerte" currently, we'll want to remove it when an alert comes
+    let pendingAlerts = [];
+    let updateRequested = false;
+
+    function flushAlerts() {
+        if (!tbody || pendingAlerts.length === 0) return;
+        
+        // Remove 'Aucune alerte' row if it exists
+        const noAlertMsg = tbody.querySelector('td[colspan="5"]');
+        if (noAlertMsg) noAlertMsg.closest('tr').remove();
+
+        const frag = document.createDocumentFragment();
+        pendingAlerts.forEach(a => {
+            const tr = document.createElement('tr');
+            
+            let dateStr = "";
+            try {
+                const d = new Date(a.timestamp);
+                dateStr = d.getFullYear() + '-' +
+                    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(d.getDate()).padStart(2, '0') + ' ' +
+                    String(d.getHours()).padStart(2, '0') + ':' +
+                    String(d.getMinutes()).padStart(2, '0') + ':' +
+                    String(d.getSeconds()).padStart(2, '0');
+            } catch (err) { dateStr = a.timestamp; }
+
+            const level = typeof a.alert_level === 'object' ? a.alert_level.value : (a.alert_level || 'UNKNOWN');
+            const message = a.message ? a.message.substring(0, 100) : '';
+            
+            // Assume new alerts are unresolved initially
+            const statusHtml = `
+                <span class="bdg" style="background:rgba(245,158,11,.1);color:var(--s-med);border:1px solid rgba(245,158,11,.2);">
+                    <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>Active
+                </span>
+            `;
+            
+            const actionHtml = `
+                <form method="post" action="/admin/alerts/${a.id}/resolve">
+                    <button type="submit" class="btn-sm-ok"><i class="bi bi-check2"></i>Résoudre</button>
+                </form>
+            `;
+
+            tr.innerHTML = `
+                <td style="padding-left:1.4rem;font-family:monospace;font-size:.76rem;color:var(--t3);white-space:nowrap;">
+                    ${dateStr}
+                </td>
+                <td><span class="bdg bdg-${level}">${level}</span></td>
+                <td style="max-width:340px;font-size:.83rem;">${message}</td>
+                <td>${statusHtml}</td>
+                <td>${actionHtml}</td>
+            `;
+            frag.appendChild(tr);
+        });
+        
+        tbody.prepend(frag);
+        pendingAlerts = [];
+        updateRequested = false;
+        
+        while (tbody.children.length > 100) {
+            tbody.removeChild(tbody.lastChild);
+        }
+    }
+
     ws.onmessage = (evt) => {
         const msg = JSON.parse(evt.data);
-        if (msg.type === 'new_alert' || msg.type === 'new_event') {
-            location.reload();
+        if (msg.type === 'new_alert') {
+            pendingAlerts.push(msg.alert);
+            
+            // Update the badge count for active alerts
+            const badge = document.querySelector('.pg-hdr .bdg-HIGH');
+            if (badge) {
+                badge.textContent = parseInt(badge.textContent || 0) + 1;
+            }
+
+            if (!updateRequested) {
+                updateRequested = true;
+                requestAnimationFrame(flushAlerts);
+            }
         }
     };
 </script>

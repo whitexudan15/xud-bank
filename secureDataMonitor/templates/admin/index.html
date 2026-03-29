@@ -282,7 +282,7 @@
         }
     });
 
-    // Mise à jour via WebSocket
+    // Mise à jour via WebSocket optimisée
     const wsHost = window.location.host;
     const ws = new WebSocket(`ws://${wsHost}/ws/alerts`);
     const dot = document.getElementById('chart-ws-dot');
@@ -290,30 +290,57 @@
     ws.onopen = () => { dot.style.background = '#16A34A'; };
     ws.onclose = () => { dot.style.background = '#DC2626'; };
 
+    let pendingChartAlerts = [];
+    let chartUpdateScheduled = false;
+
+    function flushChartUpdates() {
+        if (pendingChartAlerts.length === 0) return;
+        
+        // Count how many of each level we got in this batch
+        const levelCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
+        pendingChartAlerts.forEach(a => {
+            const rawLvl = a.alert_level;
+            const lvl = typeof rawLvl === 'object' ? rawLvl.value : rawLvl;
+            if (levelCounts[lvl] !== undefined) levelCounts[lvl]++;
+        });
+
+        const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        
+        // Ajoute un point groupé sur le graphe
+        chart.data.labels.push(now);
+        levels.forEach(l => {
+            const d = chart.data.datasets.find(x => x.label === l);
+            if (d) d.data.push(levelCounts[l] || 0);
+        });
+
+        // Garde un maximum de points
+        if (chart.data.labels.length > 24) {
+            chart.data.labels.shift();
+            chart.data.datasets.forEach(d => d.data.shift());
+        }
+        
+        chart.update('active');
+
+        // Met à jour les compteurs de légende
+        levels.forEach(l => {
+            if (levelCounts[l] > 0) {
+                const el = document.getElementById(`legend-${l}`);
+                if (el) el.textContent = parseInt(el.textContent || 0) + levelCounts[l];
+            }
+        });
+
+        pendingChartAlerts = [];
+        chartUpdateScheduled = false;
+    }
+
     ws.onmessage = (evt) => {
         const msg = JSON.parse(evt.data);
         if (msg.type === 'new_alert') {
-            const level = msg.alert.alert_level;
-            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-            // Ajoute un point sur le graphe
-            const ds = chart.data.datasets.find(d => d.label === level);
-            if (ds) {
-                chart.data.labels.push(now);
-                levels.forEach(l => {
-                    const d = chart.data.datasets.find(x => x.label === l);
-                    if (d) d.data.push(l === level ? 1 : 0);
-                });
-                if (chart.data.labels.length > 24) {
-                    chart.data.labels.shift();
-                    chart.data.datasets.forEach(d => d.data.shift());
-                }
-                chart.update('active');
+            pendingChartAlerts.push(msg.alert);
+            if (!chartUpdateScheduled) {
+                chartUpdateScheduled = true;
+                requestAnimationFrame(flushChartUpdates);
             }
-
-            // Met à jour les compteurs de légende
-            const el = document.getElementById(`legend-${level}`);
-            if (el) el.textContent = parseInt(el.textContent || 0) + 1;
         }
     };
 </script>
