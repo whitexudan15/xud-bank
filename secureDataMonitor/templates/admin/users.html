@@ -124,7 +124,8 @@
 </div>
 {% block extra_js %}
 <script>
-    const ws = new WebSocket("ws://{{ request.headers.get('host') }}/ws/alerts");
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProto}//${location.host}/ws/alerts`);
     ws.onmessage = (evt) => {
         const msg = JSON.parse(evt.data);
         if (msg.type === 'new_alert' || msg.type === 'new_event') {

@@ -295,6 +295,7 @@
         chart.options.scales.y.grid.color = dk ? 'rgba(255,255,255,.04)' : 'rgba(11,21,40,.06)';
         chart.update();
     }
-    initWS("{{ ws_url }}");
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    initWS(`${wsProto}//${location.host}/ws/alerts`);
 </script>
 {% endblock %}

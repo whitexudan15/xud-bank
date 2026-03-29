@@ -120,7 +120,8 @@
 </div>
 {% block extra_js %}
 <script>
-    const ws = new WebSocket("ws://{{ request.headers.get('host') }}/ws/alerts");
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProto}//${location.host}/ws/alerts`);
     const tbody = document.querySelector('.xtable tbody');
     // If the table shows "Aucune alerte" currently, we'll want to remove it when an alert comes
     let pendingAlerts = [];

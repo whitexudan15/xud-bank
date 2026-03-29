@@ -301,7 +301,8 @@
 
     // Mise à jour via WebSocket optimisée
     const wsHost = window.location.host;
-    const ws = new WebSocket(`ws://${wsHost}/ws/alerts`);
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProto}//${location.host}/ws/alerts`);
     const dot = document.getElementById('chart-ws-dot');
 
     ws.onopen = () => { dot.style.background = '#16A34A'; };
