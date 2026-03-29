@@ -24,18 +24,23 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
 
 
+from fastapi.concurrency import run_in_threadpool
+
 # ════════════════════════════════════════════════════════════
 # MOTS DE PASSE
 # ════════════════════════════════════════════════════════════
 
-def hash_password(plain: str) -> str:
-    """Hash bcrypt cost=12 d'un mot de passe en clair."""
-    return pwd_context.hash(plain)
+async def hash_password(plain: str) -> str:
+    """Hash bcrypt cost=12 d'un mot de passe en clair.
+    Exécuté dans un thread pour ne pas bloquer l'Event Loop asyncio.
+    """
+    return await run_in_threadpool(pwd_context.hash, plain)
 
-
-def verify_password(plain: str, hashed: str) -> bool:
-    """Vérifie un mot de passe contre son hash bcrypt."""
-    return pwd_context.verify(plain, hashed)
+async def verify_password(plain: str, hashed: str) -> bool:
+    """Vérifie un mot de passe contre son hash bcrypt.
+    Exécuté dans un threadpool pour préserver la réactivité du serveur.
+    """
+    return await run_in_threadpool(pwd_context.verify, plain, hashed)
 
 
 # ════════════════════════════════════════════════════════════
@@ -95,10 +100,11 @@ async def create_user(
     role: UserRole = UserRole.utilisateur,
 ) -> User:
     """Crée un nouvel utilisateur avec mot de passe hashé."""
+    hashed = await hash_password(password)
     user = User(
         username=username,
         email=email,
-        password_hash=hash_password(password),
+        password_hash=hashed,
         role=role,
         is_locked=False,
         failed_attempts=0,
@@ -156,7 +162,8 @@ async def authenticate(
         return AuthResult(success=False, user=user, reason="account_locked")
 
     # Mot de passe incorrect
-    if not verify_password(password, user.password_hash):
+    is_valid = await verify_password(password, user.password_hash)
+    if not is_valid:
         user.failed_attempts += 1
         user.last_failed_at = datetime.utcnow()
         await db.flush()
