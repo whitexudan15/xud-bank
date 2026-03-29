@@ -15,7 +15,7 @@
         right: 0;
         bottom: 0;
         display: grid;
-        grid-template-columns: 1fr 420px;
+        grid-template-columns: 1fr 520px;
         overflow: hidden;
     }
 
@@ -174,11 +174,11 @@
         right: 2.5rem;
         width: 260px;
         background: var(--bg-glass);
-        border: 1px solid rgba(180, 255, 69, .18);
+        border: none;
         border-radius: 16px;
         padding: 1.3rem;
         backdrop-filter: blur(20px);
-        box-shadow: var(--sh-card), var(--sh-lime);
+        box-shadow: var(--sh-card);
         animation: cardFloat 6s ease-in-out infinite, fadeSlideUp .6s var(--ease) .4s both;
     }
 
@@ -270,8 +270,14 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding: 2.8rem 2.5rem;
+        align-items: center;
+        padding: 3rem 3.5rem;
         overflow-y: auto;
+    }
+
+    .form-inner {
+        width: 100%;
+        max-width: 420px;
     }
 
     .form-logo {
@@ -358,8 +364,21 @@
     }
 
     /* pwd toggle */
+    .input-wrap,
     .pwd-wrap {
         position: relative;
+    }
+
+    .input-wrap i.fi,
+    .pwd-wrap i.fi {
+        position: absolute;
+        left: .95rem;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        color: var(--t3);
+        font-size: .9rem;
+        pointer-events: none;
+        z-index: 2;
     }
 
     .pwd-wrap .xinput {
@@ -386,7 +405,7 @@
         color: var(--lime);
     }
 
-    @media(max-width:900px) {
+    @media(max-width:1000px) {
         .landing {
             grid-template-columns: 1fr;
         }
@@ -396,7 +415,7 @@
         }
 
         .form-side {
-            padding: 2rem 1.5rem;
+            padding: 2.5rem 2rem;
         }
     }
 </style>
@@ -477,8 +496,9 @@
 
     <!-- ══ RIGHT — Login form ════════════════════════════════════════ -->
     <div class="form-side" id="form">
+        <div class="form-inner">
 
-        <div class="form-logo">X</div>
+            <div class="form-logo">X</div>
         <div class="form-title">Bienvenue</div>
         <p class="form-sub">Connectez-vous à votre espace sécurisé Xud-Bank</p>
 
@@ -500,7 +520,7 @@
 
             <div class="xfield">
                 <label>Email</label>
-                <div style="position:relative;">
+                <div class="input-wrap">
                     <i class="bi bi-envelope fi"></i>
                     <input type="email" name="email" class="xinput" placeholder="votre@email.com" required
                         autocomplete="email" />
@@ -510,7 +530,7 @@
             <div class="xfield">
                 <label>Mot de passe</label>
                 <div class="pwd-wrap">
-                    <i class="bi bi-lock fi" style="z-index:2;"></i>
+                    <i class="bi bi-lock fi"></i>
                     <input type="password" name="password" id="pwdIn" class="xinput" placeholder="••••••••" required
                         autocomplete="current-password" />
                     <button type="button" class="pwd-eye" id="togglePwd">
@@ -550,6 +570,8 @@
                 <div class="trust-val">ISO</div>
                 <div class="trust-lbl">Certifié</div>
             </div>
+        </div>
+
         </div>
     </div>
 </div>
