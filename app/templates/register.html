@@ -14,7 +14,7 @@
         right: 0;
         bottom: 0;
         display: grid;
-        grid-template-columns: 420px 1fr;
+        grid-template-columns: 520px 1fr;
         overflow: hidden;
     }
 
@@ -25,8 +25,14 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding: 2.8rem 2.5rem;
+        align-items: center;
+        padding: 3rem 3.5rem;
         overflow-y: auto;
+    }
+
+    .reg-form-inner {
+        width: 100%;
+        max-width: 420px;
     }
 
     .reg-hero-col {
@@ -173,15 +179,35 @@
         color: var(--s-hi);
     }
 
+    /* Repositionne l'icône par rapport au input, pas au label */
+    .xfield i.fi {
+        top: auto !important;
+        transform: none !important;
+        bottom: calc(.75rem + .05rem);
+        transform: translateY(50%) !important;
+    }
+
     .pwd-wrap {
         position: relative;
+    }
+
+    .pwd-wrap i.fi {
+        position: absolute;
+        left: .95rem;
+        top: 50% !important;
+        bottom: auto !important;
+        transform: translateY(-50%) !important;
+        color: var(--t3);
+        font-size: .9rem;
+        pointer-events: none;
+        z-index: 2;
     }
 
     .pwd-wrap .xinput {
         padding-right: 2.8rem !important;
     }
 
-    @media(max-width:900px) {
+    @media(max-width:1000px) {
         .reg-scene {
             grid-template-columns: 1fr;
         }
@@ -191,7 +217,7 @@
         }
 
         .reg-form-col {
-            padding: 2rem 1.5rem;
+            padding: 2.5rem 2rem;
         }
     }
 </style>
@@ -202,15 +228,16 @@
 
     <!-- ══ FORM col ═══════════════════════════════════════════════════ -->
     <div class="reg-form-col">
+      <div class="reg-form-inner">
 
         <div style="width:52px;height:52px;background:var(--lime);border-radius:14px;
                     display:flex;align-items:center;justify-content:center;
                     font-family:'Syne',sans-serif;font-weight:900;font-size:1.3rem;
-                    color:var(--t-inv);margin-bottom:1.6rem;
+                    color:var(--t-inv);margin-bottom:1.8rem;
                     box-shadow:0 6px 24px rgba(180,255,69,.3);">X</div>
 
-        <h2 style="font-size:1.4rem;margin-bottom:.2rem;">Créer un compte</h2>
-        <p style="font-size:.82rem;color:var(--t2);margin-bottom:1.8rem;">
+        <h2 style="font-size:1.6rem;margin-bottom:.35rem;">Créer un compte</h2>
+        <p style="font-size:.85rem;color:var(--t2);margin-bottom:2rem;">
             Accès client XUD-Bank — sécurisé et confidentiel
         </p>
 
@@ -225,28 +252,32 @@
 
             <div class="xfield">
                 <label>Nom d'utilisateur</label>
-                <i class="bi bi-person fi"></i>
-                <input type="text" name="username" class="xinput" placeholder="jean.dupont" required />
+                <div class="pwd-wrap">
+                    <i class="bi bi-person fi"></i>
+                    <input type="text" name="username" class="xinput" placeholder="jean" required />
+                </div>
             </div>
 
             <div class="xfield">
                 <label>Adresse e-mail</label>
-                <i class="bi bi-envelope fi"></i>
-                <input type="email" name="email" class="xinput" placeholder="jean@mail.com" required />
+                <div class="pwd-wrap">
+                    <i class="bi bi-envelope fi"></i>
+                    <input type="email" name="email" class="xinput" placeholder="jean@mail.com" required />
+                </div>
             </div>
 
             <div class="xfield">
                 <label>Mot de passe</label>
                 <div class="pwd-wrap">
-                    <i class="bi bi-lock fi" style="z-index:2;"></i>
+                    <i class="bi bi-lock fi"></i>
                     <input type="password" name="password" class="xinput" placeholder="••••••••" required />
                 </div>
             </div>
 
             <div style="display:flex;align-items:flex-start;gap:.6rem;
                         background:rgba(180,255,69,.04);border:1px solid var(--bdr);
-                        border-radius:10px;padding:.7rem .9rem;margin-bottom:1.2rem;font-size:.76rem;color:var(--t2);">
-                <i class="bi bi-shield-lock-fill" style="color:var(--lime);margin-top:.1rem;flex-shrink:0;"></i>
+                        border-radius:10px;padding:.8rem 1rem;margin-bottom:1.4rem;font-size:.78rem;color:var(--t2);">
+                <i class="bi bi-shield-lock-fill" style="color:var(--lime);margin-top:.15rem;flex-shrink:0;"></i>
                 <span>Vos données sont chiffrées. XUD-Bank ne partage jamais vos informations personnelles.</span>
             </div>
 
@@ -255,12 +286,14 @@
             </button>
         </form>
 
-        <p style="text-align:center;font-size:.82rem;color:var(--t2);margin-top:1.2rem;">
+        <p style="text-align:center;font-size:.83rem;color:var(--t2);margin-top:1.4rem;">
             Déjà un compte ?
             <a href="/auth/login" style="color:var(--lime);font-weight:700;text-decoration:none;">
                 Se connecter
             </a>
         </p>
+
+      </div>
     </div>
 
     <!-- ══ HERO col ═══════════════════════════════════════════════════ -->
