@@ -5,36 +5,31 @@
 
 ---
 
-## Table des matières
+## 📌 Table des matières
 
 1. [Présentation](#1-présentation)
 2. [Architecture](#2-architecture)
-3. [Stack technologique](#3-stack-technologique)
+3. [Stack technologique & Optimisations](#3-stack-technologique--optimisations)
 4. [Structure du projet](#4-structure-du-projet)
 5. [Modèle de données](#5-modèle-de-données)
-6. [Logique événementielle](#6-logique-événementielle)
-7. [Règles de détection](#7-règles-de-détection)
-8. [Interfaces & Rôles](#8-interfaces--rôles)
-9. [Installation](#9-installation)
-10. [Configuration](#10-configuration)
-11. [Identifiants de test](#11-identifiants-de-test)
-12. [Scénarios de test](#12-scénarios-de-test)
-13. [Journalisation](#13-journalisation)
+6. [Identification et Rôles (NOUVEAU)](#6-identification-et-rôles-nouveau)
+7. [Logique événementielle](#7-logique-événementielle)
+8. [Règles de détection SOC](#8-règles-de-détection-soc)
+9. [Installation & Déploiement](#9-installation--déploiement)
+10. [Journalisation](#10-journalisation)
 
 ---
 
 ## 1. Présentation
 
-**XUD-Bank** est une application Web bancaire simulée destinée au personnel interne et aux clients bancaires. Elle est couplée au moteur **SecureDataMonitor** qui surveille, détecte et alerte en temps réel sur toute activité suspecte.
+**XUD-Bank** est une application Web bancaire de démonstration destinée au personnel interne et aux clients. Elle intègre directement un moteur de détection d'intrusion appelé **SecureDataMonitor**. Ce composant agit comme un mini-SOC (Security Operations Center) qui surveille, détecte, et alerte en temps réel toute activité suspecte sur le backend.
 
-### Objectifs
-
-- Fournir une interface bancaire avec authentification et gestion de rôles
-- Implémenter un moteur de surveillance événementielle (Pub/Sub)
-- Détecter au moins 5 types d'attaques
-- Générer des alertes sur 4 niveaux de gravité (LOW, MEDIUM, HIGH, CRITICAL)
-- Journaliser toutes les actions en fichier et en base de données
-- Produire un tableau de bord sécurité en temps réel via WebSocket
+### Objectifs atteints
+- **UI Premium** : Interface asynchrone moderne (Bootstrap 5, Jinja2, Chart.js) avec des Layouts optimisés pour les tableaux de bord interactifs.
+- **Authentification asynchrone** : Hachage Bcrypt optimisé fonctionnant hors du thread principal pour éviter tout ralentissement réseau. 
+- **Moteur événementiel (Pub/Sub)** : Modèle 100% découplé.
+- **Détection des menaces** : 6 règles de détection (Brute force, exfiltration, SQLi...).
+- **Surveillance Ultra-fluide (WebSocket)** : Tableau de bord qui supporte des centaines d'événements par seconde sans faire lagger le navigateur grâce au regroupement d'événements (`requestAnimationFrame`).
 
 ---
 
@@ -42,17 +37,17 @@
 
 Le projet suit deux design patterns combinés :
 
-### Layered Architecture (4 couches strictes)
+### Layered Architecture (4 couches)
 
 ```
 ┌─────────────────────────────────────────────┐
-│  PRÉSENTATION  routers/ + templates/         │  HTTP, rendu HTML, sessions
+│  PRÉSENTATION  routers/ + templates/        │  HTTP, vues HTML, WebSocket
 ├─────────────────────────────────────────────┤
-│  MÉTIER        services/auth_service.py      │  Logique bancaire pure
+│  MÉTIER        services/auth_service.py     │  Logique bancaire, Threadpool, Bcrypt
 ├─────────────────────────────────────────────┤
-│  ÉVÉNEMENTIELLE events/dispatcher.py         │  Pub/Sub, détection, alertes
+│  ÉVÉNEMENTIELLE events/dispatcher.py        │  Pub/Sub, détection, alertes asynchrones
 ├─────────────────────────────────────────────┤
-│  PERSISTANCE   models/ + database.py         │  CRUD SQLAlchemy async
+│  PERSISTANCE   models/ + database.py        │  CRUD SQLAlchemy 2.0 (asyncpg)
 └─────────────────────────────────────────────┘
 ```
 
@@ -63,33 +58,29 @@ Router (app bancaire)
     │
     │  dispatcher.emit("login_failed", {...})
     ▼
-EventDispatcher
+EventDispatcher (Lancement des Tâches Asynchrones)
     │
     ├──▶ handle_failed_login()  ──▶  detection.check_brute_force()
     │                                logger.log_event()
-    │                                logger.create_alert()  ──▶  WebSocket broadcast
+    │                                logger.create_alert()  ──▶  WebSocket Broadcast
     │
-    └──▶ [autres handlers abonnés]
+    └──▶ [autres handlers spécialisés]
 ```
-
-Zéro couplage entre l'application bancaire et le moteur de surveillance.
 
 ---
 
-## 3. Stack technologique
+## 3. Stack technologique & Optimisations
 
-| Couche | Technologie | Justification |
+| Composant | Technologie | Note |
 |---|---|---|
-| Backend | FastAPI (Python 3.11+) | async/await natif, WebSocket intégré |
-| Base de données | PostgreSQL via Supabase | Hébergé, SSL, scalable |
-| ORM | SQLAlchemy 2.x async + asyncpg | Driver async PostgreSQL le plus performant |
-| Templating | Jinja2 | Rendu server-side, auto-escape XSS |
-| Frontend | Bootstrap 5 + JS vanilla | Léger, sans build step |
-| Alertes temps réel | WebSocket (FastAPI natif) | Push instantané, zéro latence |
-| Sessions | itsdangerous (cookie signé) | Sans état côté serveur |
-| Mots de passe | passlib[bcrypt] cost=12 | Standard sécurité moderne |
-| Logs fichier | logging.RotatingFileHandler | Rotation automatique 5MB × 3 |
-| Déploiement | Render.com + Supabase | Gratuit pour démo |
+| **Backend** | FastAPI (Python 3.11+) | Asynchrone natif |
+| **Bases de données** | PostgreSQL (Supabase) | Driver hautes performances `asyncpg` |
+| **ORM** | SQLAlchemy 2.0 | Opérations totalement asynchrones |
+| **Mots de passe** | Passlib (Bcrypt = 12) | Exécuté sur un *Threadpool* (non-bloquant) |
+| **Sessions** | itsdangerous | Cookies chiffrés et signés sans BDD |
+| **WebSocket** | Websockets natif | Optimisation visuelle par Batching (`requestAnimationFrame`) |
+| **Frontend** | HTML5 / Bootstrap 5 / JS | Interfaces dynamiques / Chart.js mis à jour en masse |
+| **Logs** | logging.RotatingFileHandler | Fichiers rotatifs & BDD locale sync |
 
 ---
 
@@ -97,379 +88,120 @@ Zéro couplage entre l'application bancaire et le moteur de surveillance.
 
 ```
 xud-bank/
-├── app/                              # Application Web bancaire
-│   ├── main.py                       # Point d'entrée FastAPI + lifespan + middleware
-│   ├── config.py                     # Settings Pydantic (chargés depuis .env)
-│   ├── database.py                   # Engine async SQLAlchemy, session factory
-│   ├── models/
-│   │   ├── user.py                   # Table users
-│   │   ├── bank_account.py           # Table bank_accounts (données sensibles)
-│   │   ├── security_event.py         # Table security_events + ENUMs
-│   │   ├── alert.py                  # Table alerts
-│   │   └── login_attempt.py          # Table login_attempts (tracking)
-│   ├── routers/
-│   │   ├── auth.py                   # Login, logout, register
-│   │   └── data.py                   # Consultation comptes bancaires
-│   ├── services/
-│   │   └── auth_service.py           # bcrypt, sessions, authenticate(), require_role()
-│   └── templates/
-│       ├── base.html                 # Layout global Bootstrap
-│       ├── login.html                # Page connexion
-│       ├── register.html             # Inscription client
-│       └── data.html                 # Vue comptes bancaires
-│
-├── secureDataMonitor/                # Moteur de surveillance événementielle
-│   ├── events/
-│   │   ├── dispatcher.py             # EventDispatcher (emit/subscribe) — Pub/Sub
-│   │   └── handlers.py               # 12 handlers + register_all_handlers()
-│   ├── services/
-│   │   ├── detection.py              # 6 règles de détection
-│   │   └── logger.py                 # Double journalisation fichier + BDD
-│   ├── routers/
-│   │   ├── admin.py                  # Dashboard, users, events, alerts
-│   │   └── api_alerts.py             # WebSocket + REST API
-│   ├── templates/
-│   │   ├── dashboard.html            # Tableau de bord sécurité temps réel
-│   │   ├── admin/
-│   │   │   ├── index.html            # Vue synthèse admin
-│   │   │   ├── users.html            # Gestion utilisateurs + verrouillage
-│   │   │   ├── events.html           # Historique security_events filtrable
-│   │   │   └── alerts.html           # Gestion alertes + résolution
-│   │   └── errors/
-│   │       ├── 403.html
-│   │       └── 404.html
-│   └── static/
-│       └── js/ws_alerts.js           # Client WebSocket avec reconnexion auto
-│
-├── docs/
-│   └── XUD-Bank_Architecture.docx    # Document d'architecture complet
-├── logs/
-│   └── security.log                  # Logs rotatifs (5MB × 3)
-├── init_db.sql                       # Script création tables PostgreSQL
-├── seed_data.sql                     # Données de test avec vrais hash bcrypt
-├── requirements.txt
-└── .env.example                      # Template de configuration
+├── app/                              # Application Bancaire
+│   ├── main.py                       # Point d'entrée, middlewares de sécurité
+│   ├── database.py                   # Configuration Supabase + Asyncpg
+│   ├── models/                       # UUIDPK, Enum (utilisateurs, alertes, etc)
+│   ├── routers/                      # Routes d'accès
+│   ├── services/                     # Métier (auth via threadpool)
+│   └── templates/                    # Front public
+├── secureDataMonitor/                # Surveillant / SOC Moteur
+│   ├── events/                       # Handles & Dispatcher
+│   ├── services/                     # Détection de menaces / Exfiltration
+│   ├── routers/                      # Rest API Admin & WebSockets
+│   ├── templates/admin/              # Front SOC
+│   └── static/js/ws_alerts.js        # Script de batching très haute perfo
+├── logs/                             # Fichiers de log locaux
+└── init_db.sql / requirements.txt    # Configurations DB
 ```
 
 ---
 
 ## 5. Modèle de données
 
-### Table `users`
+Le modèle repose sur PostgreSQL (avec Supabase) :
 
-| Colonne | Type | Description |
-|---|---|---|
-| `id` | UUID PK | Identifiant unique |
-| `username` | VARCHAR(50) UNIQUE | Nom d'utilisateur |
-| `email` | VARCHAR(100) UNIQUE | Email |
-| `password_hash` | VARCHAR(255) | Hash bcrypt cost=12 |
-| `role` | ENUM | `admin` \| `analyste` \| `utilisateur` |
-| `is_locked` | BOOLEAN | Compte verrouillé après brute force |
-| `failed_attempts` | INTEGER | Compteur d'échecs consécutifs |
-| `last_failed_at` | TIMESTAMP | Dernier échec (fenêtre Règle 1) |
-| `created_at` | TIMESTAMP | Date de création |
+- **`users`** : UUID, identifiants, mot de passe hashé, rôles et gestion de verrouillage (`is_locked`).
+- **`bank_accounts`** : Données cibles (soldes, niveau de classification "secret" etc.).
+- **`security_events`** : Trace indélébile en base des actions (avec typage Enum). 
+- **`alerts`** : Alertes levées par le SOC, liées aux `security_events` déclencheurs.
+- **`login_attempts`** : Historique granulaire pour la prévention du brute-force Règle 1 et de l'énumération Règle 5.
 
-### Table `bank_accounts` (données sensibles)
-
-| Colonne | Type | Description |
-|---|---|---|
-| `id` | UUID PK | Identifiant unique |
-| `id_compte` | VARCHAR(20) UNIQUE | Numéro de compte |
-| `titulaire` | VARCHAR(100) | Nom du titulaire |
-| `solde` | DECIMAL(15,2) | Solde actuel |
-| `historique` | TEXT | Transactions (JSON sérialisé) |
-| `classification` | ENUM | `public` \| `confidentiel` \| `secret` |
-| `owner_id` | UUID FK | Propriétaire (→ users) |
-
-### Table `security_events` (journal central)
-
-| Colonne | Type | Description |
-|---|---|---|
-| `id` | UUID PK | Identifiant unique |
-| `timestamp` | TIMESTAMP | Date/heure UTC |
-| `username` | VARCHAR | Utilisateur impliqué (NULL si inconnu) |
-| `ip_address` | INET | IP source |
-| `event_type` | ENUM | 12 types d'événements |
-| `severity` | ENUM | `LOW` \| `MEDIUM` \| `HIGH` \| `CRITICAL` |
-| `description` | TEXT | Détail complet |
-| `status` | ENUM | `open` \| `investigating` \| `closed` |
-| `action_taken` | TEXT | Action automatique déclenchée |
-
-### Table `alerts`
-
-| Colonne | Type | Description |
-|---|---|---|
-| `id` | UUID PK | Identifiant unique |
-| `timestamp` | TIMESTAMP | Date/heure UTC |
-| `alert_level` | ENUM | `LOW` \| `MEDIUM` \| `HIGH` \| `CRITICAL` |
-| `source_event_id` | UUID FK | Événement déclencheur |
-| `message` | TEXT | Message descriptif |
-| `resolved` | BOOLEAN | Résolue par SOC/admin |
-
-### Table `login_attempts`
-
-| Colonne | Type | Description |
-|---|---|---|
-| `id` | UUID PK | Identifiant unique |
-| `ip_address` | INET | IP source |
-| `username_tried` | VARCHAR(50) | Username tenté |
-| `timestamp` | TIMESTAMP | Moment de la tentative |
-| `success` | BOOLEAN | Succès ou échec |
+*(Voir l'intégrité de schéma au fichier `init_db.sql`)*
 
 ---
 
-## 6. Logique événementielle
+## 6. Identification et Rôles (NOUVEAU)
 
-### EventDispatcher
+Voici les identifiants mis à jour dans le système. La navigation et les accès sont fortement restreints selon le rôle validé durant la phase de connexion.
+
+| Username | Mot de passe | Rôle | Accès & Privilèges |
+|---|---|---|---|
+| **`admin`** | `Admin@1234` | **admin (SOC)** | Accès complet, Dashboard Temps réel |
+| **`soc`** | `Soc@1234` | **admin (SOC)** | Tableau de gestion des Alertes |
+| **`hor`** | `Hor@1234` | **comptable** | Accès aux bilans |
+| **`directeur`** | `Directeur@1234` | **directeur** | Accès directoire |
+| **`dupont`** | `Dupont@1234` | **utilisateur (client)**| Consultation comptes personnels |
+| **`pierre`** | `Pierre@1234` | **utilisateur (client)**| Consultation comptes personnels |
+
+---
+
+## 7. Logique événementielle
+
+Le cœur de XUD-Bank repose sur des événements publiés par les requêtes (ex: *tentative de connexion ratée*) et attrapés en arrière plan :
 
 ```python
-# Abonnement
-dispatcher.subscribe("login_failed", handle_failed_login)
-
-# Émission depuis un router
-await dispatcher.emit("login_failed", {
-    "username": "jdoe",
+await dispatcher.emit("rate_limit", {
     "ip": "192.168.1.1",
-    "attempt": 2,
+    "username": "dupont",
+    "count": 50
 })
 ```
 
-Handlers exécutés en **concurrence** via `asyncio.gather()`.
-
-### 12 événements catalogués
-
-| Événement | Handler | Severity |
-|---|---|---|
-| `login_success` | `handle_login_success` | LOW |
-| `login_failed` | `handle_failed_login` | MEDIUM |
-| `account_locked` | `handle_account_locked` | MEDIUM |
-| `unknown_user` | `handle_unknown_user` | MEDIUM |
-| `unauthorized` | `handle_unauthorized` | HIGH |
-| `privilege_escalation` | `handle_privilege_escalation` | HIGH |
-| `sql_injection` | `handle_sql_injection` | HIGH |
-| `rate_limit` | `handle_rate_limit` | MEDIUM |
-| `mass_data_access` | `handle_mass_access` | CRITICAL |
-| `enum_attempt` | `handle_enum_attempt` | MEDIUM |
-| `off_hours_access` | `handle_off_hours` | LOW |
-| `suspicious_url` | `handle_suspicious_url` | HIGH |
-
-### Flux login échoué
-
-```
-POST /auth/login → authenticate() → ÉCHEC
-    │
-    ▼
-dispatcher.emit("login_failed", {username, ip, attempt})
-    │
-    ▼
-handle_failed_login()
-    ├── record_login_attempt()       → BDD
-    ├── check_brute_force()          → Règle 1 ?
-    ├── log_event(LOGIN_FAILED)      → BDD + fichier
-    └── [si Règle 1] :
-        ├── lock_account()           → is_locked = TRUE
-        ├── create_alert(MEDIUM)     → BDD + fichier
-        └── emit("account_locked")   → handler secondaire
-```
+- Pas de blocage du Thread Serveur. L'utilisateur reçoit sa réponse instantanément, pendant que les modules d'analyse se lancent en parallèle.
 
 ---
 
-## 7. Règles de détection
+## 8. Règles de détection SOC
 
-| # | Règle | Condition | Action | Alerte |
-|---|---|---|---|---|
-| 1 | Brute Force | 3 échecs < 2 min (même username) | Verrouillage compte | MEDIUM |
-| 2 | SQL Injection | Pattern SQLi dans les inputs | Rejet requête | HIGH |
-| 3 | Accès Admin | Rôle insuffisant → `/admin/*` | Redirection 403 | HIGH |
-| 4 | Exfiltration | >20 consultations < 1 min | Notification immédiate | CRITICAL |
-| 5 | Énumération | Même IP → 3 usernames < 5 min | IP signalée | MEDIUM |
-| 6 | Hors horaires | Connexion hors 07h–20h UTC | Log uniquement | LOW |
+Le module Monitor écoute activement les évènements pour bloquer le trafic :
 
----
-
-## 8. Interfaces & Rôles
-
-| Route | Accès | Description |
-|---|---|---|
-| `/auth/login` | Public | Connexion |
-| `/auth/register` | Public | Inscription |
-| `/data/accounts` | Tous rôles | Comptes bancaires (filtrés par rôle) |
-| `/admin/` | admin, analyste | Vue synthèse |
-| `/admin/dashboard` | admin, analyste | Dashboard temps réel WebSocket |
-| `/admin/users` | admin | Gestion + verrouillage comptes |
-| `/admin/events` | admin, analyste | Historique events filtrable |
-| `/admin/alerts` | admin, analyste | Alertes + résolution |
-| `ws://host/ws/alerts` | admin, analyste | Push alertes temps réel |
+| Règle | Description | Réaction du système | Alerte levée |
+|---|---|---|---|
+| **Règle 1 : Brute Force** | 3 échecs sur un seul compte en < 2min | Verrouillage du compte bloqué (`is_locked`) | **MEDIUM** |
+| **Règle 2 : Injection SQL** | Strings suspectes: `' OR 1=1` | Rejet 400 immédiat + alerte | **HIGH** |
+| **Règle 3 : Escalade** | Requête `/admin/*` effectuée par un *client* | Révocation avec 403 immédiat | **HIGH** |
+| **Règle 4 : Exfiltration** | L'utilisateur fait +20 requêtes de data en 1m | Flag de suspicion Massive | **CRITICAL** |
+| **Règle 5 : Énumération** | Une seule IP essaie différents pseudos | Fichage de l'IP | **MEDIUM** |
+| **Règle 6 : Horaires** | Connexion entre 20h00 et 07h00 | Inscription silencieuse dans les registres | **LOW** |
 
 ---
 
-## 9. Installation
+## 9. Installation & Déploiement
+
+### Prérequis
+- Python 3.11+
+- Base de données PostgreSQL fraîche (idéalement Supabase pour simuler la production)
 
 ```bash
-# Cloner
+# 1. Cloner l'archive
 git clone https://github.com/votre-repo/xud-bank.git
 cd xud-bank
 
-# Environnement virtuel
+# 2. Préparer l'environnement
 python -m venv venv
 source venv/bin/activate
 
-# Dépendances
+# 3. Installer les dépendances 
 pip install -r requirements.txt
-pip install bcrypt==4.0.1
 
-# Configuration
+# 4. Variables d'environnement
 cp .env.example .env
-# Éditer .env avec vos valeurs Supabase
+# Renseigner la clef `DATABASE_URL` (modèle asyncpg!) et `SECRET_KEY`
 
-# BDD : exécuter dans Supabase SQL Editor
-# 1. init_db.sql
-# 2. seed_data.sql
-
-# Lancer
+# 5. Lancer l'application
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+Le projet se trouve désormais sur `http://localhost:8000`.
 
 ---
 
-## 10. Configuration
+## 10. Journalisation
 
-```env
-DATABASE_URL=postgresql+asyncpg://postgres.[REF]:[PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
-SECRET_KEY=votre_cle_secrete_32_chars_minimum
-DEBUG=True
-
-MAX_LOGIN_ATTEMPTS=3
-BRUTE_FORCE_WINDOW=120
-
-MASS_ACCESS_LIMIT=20
-MASS_ACCESS_WINDOW=60
-
-ENUM_USERNAMES_LIMIT=3
-ENUM_WINDOW=300
-
-ALLOWED_HOURS_START=7
-ALLOWED_HOURS_END=20
-```
+La sécurité s'accompagne toujours d'un bon logging.
+1. **Fichiers Locaux** (`logs/security.log`) : Fichiers rotatifs limités à 5MB avec rotation de 3 backups. Évite la saturation du disque.
+2. **Dashboard Temps Réel Websocket** : Affichage graphique des détections sans réactualisation (flux réseau optimisé).
+3. **Persistance en base de donnée** : Table `security_events` et `alerts`.
 
 ---
-
-## 11. Identifiants de test
-
-> Hash bcrypt générés avec `passlib[bcrypt]` cost=12 — intégrés directement dans `seed_data.sql`.
-
-| Username | Mot de passe | Rôle | Notes |
-|---|---|---|---|
-| `admin_sys` | `Admin@1234` | admin | Accès complet |
-| `soc_analyst` | `Analyst@1234` | analyste | Dashboard + events + alerts |
-| `jean.dupont` | `User@1234` | utilisateur | 2 comptes (public + confidentiel) |
-| `marie.curie` | `User@1234` | utilisateur | 1 compte SECRET |
-| `pierre.bank` | `User@1234` | utilisateur | 1 compte confidentiel |
-| `locked_user` | `Lock@1234` | utilisateur | Compte verrouillé (démo brute force) |
-
-### Comptes bancaires disponibles
-
-| id_compte | Titulaire | Solde | Classification | Accessible par |
-|---|---|---|---|---|
-| XUD-FR-001-2024 | Jean Dupont | 15 750,00 € | confidentiel | jean.dupont, analyste, admin |
-| XUD-FR-002-2024 | Jean Dupont | 3 200,00 € | public | tous |
-| XUD-FR-003-2024 | Marie Curie | 87 430,50 € | **secret** | marie.curie, admin uniquement |
-| XUD-FR-004-2024 | Pierre Bancroft | 4 980,75 € | confidentiel | pierre.bank, analyste, admin |
-| XUD-INT-001-2024 | XUD-Bank Réserve | 5 000 000,00 € | **secret** | admin uniquement |
-
----
-
-## 12. Scénarios de test
-
-### Test 1 — Connexion normale
-```
-Identifiants : jean.dupont / User@1234
-Résultat     : accès /data/accounts, event LOGIN_SUCCESS loggé, alerte OFF_HOURS si nuit
-```
-
-### Test 2 — Brute Force (Règle 1)
-```
-Action   : 3 tentatives avec mauvais mot de passe sur jean.dupont en < 2 min
-Résultat : compte verrouillé, alerte MEDIUM dans /admin/alerts
-```
-
-### Test 3 — Injection SQL (Règle 2)
-```
-Action   : saisir  ' OR 1=1 --  dans le champ username
-Résultat : requête rejetée (400), alerte HIGH dans /admin/alerts
-```
-
-### Test 4 — Accès admin non autorisé (Règle 3)
-```
-Action   : connecté en tant que jean.dupont → GET /admin/
-Résultat : page 403, alerte HIGH dans /admin/alerts
-```
-
-### Test 5 — Exfiltration massive (Règle 4)
-```bash
-# Remplacer TON_COOKIE par la valeur du cookie xud_session
-for i in $(seq 1 21); do
-  curl -s -b "xud_session=TON_COOKIE" http://localhost:8000/data/accounts > /dev/null
-  echo "Requête $i"
-done
-```
-```
-Résultat : alerte CRITICAL après la 20ème requête
-```
-
-### Test 6 — Énumération (Règle 5)
-```bash
-curl -X POST http://localhost:8000/auth/login -d "username=admin&password=test"
-curl -X POST http://localhost:8000/auth/login -d "username=root&password=test"
-curl -X POST http://localhost:8000/auth/login -d "username=superuser&password=test"
-```
-```
-Résultat : alerte MEDIUM ENUM_ATTEMPT dans /admin/alerts
-```
-
-### Test 7 — Accès hors horaires (Règle 6)
-```
-Action   : se connecter entre 20h et 7h UTC
-Résultat : alerte LOW OFF_HOURS_ACCESS loggée automatiquement
-```
-
-### Test 8 — URL suspecte
-```
-Action   : GET http://localhost:8000/admin/../../../etc/passwd
-Résultat : page 403, alerte HIGH SUSPICIOUS_URL dans /admin/alerts
-```
-
----
-
-## 13. Journalisation
-
-### Double cible
-
-**Fichier `logs/security.log`** (rotation 5MB × 3)
-```
-2026-03-28 06:21:52 | INFO  | LOW    | OFF_HOURS_ACCESS | user=lux | ip=127.0.0.1 | Accès hors horaires...
-2026-03-28 06:21:53 | INFO  | LOW    | LOGIN_SUCCESS    | user=lux | ip=127.0.0.1 | Connexion réussie...
-2026-03-28 06:21:52 | INFO  | [ALERT-LOW] Connexion hors plage autorisée...
-```
-
-**Table `security_events`** en BDD → accessible via `/admin/events`.
-
-### Champs journalisés
-
-| Champ | Source |
-|---|---|
-| Date et heure | `datetime.utcnow()` |
-| Utilisateur | Session / `anonymous` |
-| IP source | `request.client.host` |
-| Type d'événement | `EventType` enum |
-| Gravité | `SeverityLevel` enum |
-| Détail | Description contextuelle |
-| Action entreprise | `action_taken` |
-| Statut final | `open` / `closed` |
-
----
-
-## Auteur
-
-Projet développé dans le cadre de l'examen de Programmation Événementielle & Cybersécurité  
-**UNIVERSITÉ DE KARA – FAST-LPSIC S6** | Année académique 2025-2026
+> *Architecture réalisée par le département FAST-LPSIC M2 durant la session 2025-2026. L'outil reflète les standards défensifs Asynchrones modernes (Event-Loops, Threadpool GPU offloading, API sécurisée).*
