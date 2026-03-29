@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 
     try:
         await check_db_connection()
-        log.info("✓ Connexion PostgreSQL (Supabase) établie")
+        log.info("✓ Connexion PostgreSQL (Railway) établie")
     except Exception as e:
         log.critical(f"✗ Connexion BDD impossible : {e}")
         raise

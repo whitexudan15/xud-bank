@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 
-    # ── Base de données (Supabase PostgreSQL) ─────────────────
+    # ── Base de données (Railway PostgreSQL) ─────────────────
     DATABASE_URL: str = Field(
         ...,
         description="postgresql+asyncpg://user:password@host:5432/dbname"

@@ -10,7 +10,7 @@ uvicorn[standard]==0.32.1          # Serveur ASGI + WebSocket support
 
 # ── Base de données ───────────────────────────────────────────
 sqlalchemy==2.0.36                 # ORM async
-asyncpg==0.30.0                    # Driver async PostgreSQL (Supabase)
+asyncpg==0.30.0                    # Driver async PostgreSQL (Railway)
 alembic==1.14.0                    # Migrations BDD (optionnel mais recommandé)
 
 # ── Templating ────────────────────────────────────────────────

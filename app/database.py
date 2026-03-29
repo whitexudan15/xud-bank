@@ -1,6 +1,6 @@
 # ============================================================
 # XUD-BANK — SecureDataMonitor
-# Connexion asynchrone à la base de données PostgreSQL (Supabase)
+# Connexion asynchrone à la base de données PostgreSQL (Railway)
 # Université de Kara – FAST-LPSIC S6 | 2025-2026
 # ============================================================
 
@@ -24,7 +24,7 @@ engine: AsyncEngine = create_async_engine(
     pool_size=5,                    # Connexions simultanées maintenues
     max_overflow=10,                # Connexions supplémentaires si pool plein
     pool_timeout=30,                # Secondes avant timeout d'acquisition
-    pool_recycle=1800,              # Recycle connexions toutes les 30 min (Supabase)
+    pool_recycle=1800,              # Recycle connexions toutes les 30 min (Railway)
     pool_pre_ping=True,             # Vérifie la connexion avant utilisation
     connect_args={
         "server_settings": {
@@ -92,8 +92,8 @@ async def create_all_tables() -> None:
     """
     Crée toutes les tables définies dans les modèles.
     À utiliser uniquement en développement ou si init_db.sql
-    n'a pas encore été exécuté sur Supabase.
-    En production : utiliser init_db.sql via l'éditeur Supabase.
+    n'a pas encore été exécuté sur Railway.
+    En production : utiliser init_db.sql via votre interface SQL.
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

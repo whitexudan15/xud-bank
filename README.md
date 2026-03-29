@@ -74,7 +74,7 @@ EventDispatcher (Lancement des Tâches Asynchrones)
 | Composant | Technologie | Note |
 |---|---|---|
 | **Backend** | FastAPI (Python 3.11+) | Asynchrone natif |
-| **Bases de données** | PostgreSQL (Supabase) | Driver hautes performances `asyncpg` |
+| **Bases de données** | PostgreSQL (Railway) | Driver hautes performances `asyncpg` |
 | **ORM** | SQLAlchemy 2.0 | Opérations totalement asynchrones |
 | **Mots de passe** | Passlib (Bcrypt = 12) | Exécuté sur un *Threadpool* (non-bloquant) |
 | **Sessions** | itsdangerous | Cookies chiffrés et signés sans BDD |
@@ -90,7 +90,7 @@ EventDispatcher (Lancement des Tâches Asynchrones)
 xud-bank/
 ├── app/                              # Application Bancaire
 │   ├── main.py                       # Point d'entrée, middlewares de sécurité
-│   ├── database.py                   # Configuration Supabase + Asyncpg
+│   ├── database.py                   # Configuration Railway + Asyncpg
 │   ├── models/                       # UUIDPK, Enum (utilisateurs, alertes, etc)
 │   ├── routers/                      # Routes d'accès
 │   ├── services/                     # Métier (auth via threadpool)
@@ -109,7 +109,7 @@ xud-bank/
 
 ## 5. Modèle de données
 
-Le modèle repose sur PostgreSQL (avec Supabase) :
+Le modèle repose sur PostgreSQL (avec Railway) :
 
 - **`users`** : UUID, identifiants, mot de passe hashé, rôles et gestion de verrouillage (`is_locked`).
 - **`bank_accounts`** : Données cibles (soldes, niveau de classification "secret" etc.).
@@ -171,7 +171,7 @@ Le module Monitor écoute activement les évènements pour bloquer le trafic :
 
 ### Prérequis
 - Python 3.11+
-- Base de données PostgreSQL fraîche (idéalement Supabase pour simuler la production)
+- Base de données PostgreSQL fraîche (idéalement hébergée via Railway)
 
 ```bash
 # 1. Cloner l'archive
