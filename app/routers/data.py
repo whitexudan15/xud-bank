@@ -265,3 +265,66 @@ async def account_detail(
             "historique": historique,
         },
     })
+
+
+# ════════════════════════════════════════════════════════════
+# POST /data/accounts/{account_id}/transaction — Nouvelle transaction
+# ════════════════════════════════════════════════════════════
+
+from fastapi import Form
+from decimal import Decimal
+from datetime import datetime
+
+@router.post("/accounts/{account_id}/transaction")
+async def add_transaction(
+    account_id: str,
+    request: Request,
+    montant: float = Form(...),
+    libelle: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user_data: dict = Depends(get_current_user_data),
+):
+    """
+    Ajoute une transaction à l'historique d'un compte et met à jour son solde.
+    """
+    ip = request.client.host
+    username = user_data["username"]
+
+    # Vérification sécurité
+    await _check_request_security(request, user_data)
+
+    # Récupère le compte
+    result = await db.execute(
+        select(BankAccount).where(BankAccount.id == account_id)
+    )
+    account = result.scalar_one_or_none()
+
+    if not account:
+        raise HTTPException(status_code=404, detail="Compte introuvable.")
+
+    # Seul le propriétaire du compte est autorisé à effectuer une transaction.
+    # Les directeurs et comptables n'ont qu'un accès en lecture.
+    if str(account.owner_id) != user_data["user_id"]:
+         raise HTTPException(status_code=403, detail="Opération non autorisée : Lecture seule pour ce compte.")
+
+    # Met à jour le solde
+    account.solde += Decimal(str(montant))
+
+    # Met à jour l'historique
+    historique = []
+    if account.historique:
+        try:
+            historique = json.loads(account.historique)
+        except:
+            pass
+    
+    nouvelle_tx = {
+        "date": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+        "libelle": libelle,
+        "montant": float(montant)
+    }
+    historique.append(nouvelle_tx)
+    account.historique = json.dumps(historique)
+
+    await db.commit()
+    return RedirectResponse(url=f"/data/accounts/{account_id}", status_code=302)

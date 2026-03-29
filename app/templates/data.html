@@ -105,7 +105,7 @@
             </div>
         </div>
 
-        {% if not accounts %}
+        {% if not accounts and not account_detail %}
         <div style="display:flex;align-items:center;gap:1rem;
                     background:var(--bg-glass);border:1px solid var(--bdr2);
                     border-radius:14px;padding:2rem;backdrop-filter:blur(12px);">
@@ -119,6 +119,116 @@
         </div>
         {% endif %}
 
+        {% if account_detail %}
+        <div style="margin-bottom:1rem;">
+            <a href="/data/accounts" style="color:var(--lime);text-decoration:none;font-size:.85rem;font-weight:600;">
+                <i class="bi bi-arrow-left"></i> Retour aux comptes
+            </a>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;animation:fadeSlideUp .4s var(--ease) both;">
+            
+            <!-- COLOGNE GAUCHE: Informations et Historique -->
+            <div class="acc-card classification-{{ account_detail.classification }}" style="animation:none;transform:none;box-shadow:none;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
+                    <div>
+                        <span class="bdg bdg-{{ account_detail.classification }}" style="margin-bottom:.4rem;display:inline-flex;">
+                            {{ account_detail.classification | upper }}
+                        </span>
+                        <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--t1);font-size:1.2rem;margin-bottom:.2rem;">
+                            {{ account_detail.titulaire }}
+                        </div>
+                        <div style="font-size:1.05rem;color:var(--t2);font-family:monospace;margin-top:.4rem;background:rgba(255,255,255,.04);padding:.5rem .9rem;border-radius:8px;display:inline-block;border:1px solid var(--bdr2);letter-spacing:.5px;">
+                            Nb de compte : <strong style="color:var(--lime);">{{ account_detail.id_compte }}</strong>
+                        </div>
+                    </div>
+                    <div class="stat-icon" style="background:rgba(180,255,69,.06);width:45px;height:45px;border-radius:9px;">
+                        <i class="bi bi-bank" style="color:var(--lime);font-size:1.2rem;"></i>
+                    </div>
+                </div>
+
+                <div style="background:rgba(255,255,255,.02);padding:1rem;border-radius:9px;border:1px solid var(--bdr2);margin-bottom:1.2rem;">
+                    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+                                color:var(--t3);margin-bottom:.3rem;font-family:'Syne',sans-serif;">
+                        Solde Actuel
+                    </div>
+                    <span class="solde-amount" style="font-size:1.8rem;">{{ "%.2f"|format(account_detail.solde) }} €</span>
+                </div>
+
+                <div>
+                    <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+                                color:var(--t1);border-bottom:1px solid var(--bdr2);padding-bottom:.5rem;margin-bottom:.7rem;font-family:'Syne',sans-serif;">
+                        Historique Complet
+                    </div>
+                    <div style="max-height:300px;overflow-y:auto;padding-right:.5rem;">
+                        {% if account_detail.historique %}
+                            {% for tx in account_detail.historique | reverse %}
+                            <div class="history-item" style="padding:.6rem 0;border-bottom:1px solid var(--bdr2);">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:.85rem;color:var(--t1);font-weight:500;">{{ tx.libelle }}</span>
+                                    <span style="font-size:.85rem;font-weight:700;
+                                                 color:{% if tx.montant > 0 %}var(--s-low){% else %}var(--s-hi){% endif %};">
+                                        {{ "%+.2f"|format(tx.montant) }} €
+                                    </span>
+                                </div>
+                                <div style="font-size:.7rem;color:var(--t3);margin-top:.2rem;">{{ tx.date }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div style="font-size:.8rem;color:var(--t3);text-align:center;padding:1rem;">
+                                Aucune transaction enregistrée.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLLONNE DROITE: Formulaire de transaction -->
+            <div class="acc-card" style="animation:none;transform:none;box-shadow:none;">
+                    <h4 style="color:var(--t1);margin-bottom:.8rem;font-size:1.35rem;display:flex;align-items:center;gap:.6rem;">
+                        <i class="bi bi-arrow-left-right" style="color:var(--lime);"></i>
+                        Nouvelle Transaction
+                    </h4>
+                    
+                    <div style="display:flex;align-items:flex-start;gap:.8rem;background:rgba(245, 158, 11, .1);border:1px solid rgba(245, 158, 11, .25);border-radius:10px;padding:1rem;margin-bottom:1.8rem;">
+                        <i class="bi bi-exclamation-triangle-fill" style="color:var(--s-med);font-size:1.2rem;line-height:1;"></i>
+                        <div style="font-size:.9rem;color:var(--t1);line-height:1.5;">
+                            Ajouter un dépôt avec un montant positif, ou effectuer un <span style="color:var(--s-hi);font-weight:700;">retrait</span> en saisissant un <strong>montant négatif (<span style="font-family:monospace;">ex: -50.00</span>)</strong>.
+                        </div>
+                    </div>
+
+                <form action="/data/accounts/{{ account_detail.id }}/transaction" method="post" {% if user.role != 'utilisateur' %}style="opacity:0.6; pointer-events:none;"{% endif %}>
+                    
+                    {% if user.role != 'utilisateur' %}
+                    <div style="margin-bottom:1rem;padding:.7rem;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid var(--bdr2);display:flex;align-items:center;gap:.5rem;">
+                        <i class="bi bi-eye" style="color:var(--t3);font-size:1.1rem;"></i>
+                        <span style="font-size:.82rem;color:var(--t2);line-height:1.4;"><strong>Mode lecture seule.</strong> Seul le propriétaire du compte peut effectuer des transactions.</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="xfield">
+                        <label>Libellé (ex: Virement, Dépôt, Achat)</label>
+                        <div style="position:relative;">
+                            <i class="bi bi-tag" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                            <input type="text" name="libelle" class="xinput" placeholder="Salaire, Loyer..." required {% if user.role != 'utilisateur' %}disabled{% endif %}>
+                        </div>
+                    </div>
+
+                    <div class="xfield">
+                        <label>Montant en Euros (€)</label>
+                        <div style="position:relative;">
+                            <i class="bi bi-currency-euro" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                            <input type="number" step="0.01" name="montant" class="xinput" placeholder="Ex: 1540.00 ou -25.50" required {% if user.role != 'utilisateur' %}disabled{% endif %}>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-lime" style="margin-top:1rem;{% if user.role != 'utilisateur' %}background:rgba(255,255,255,.05);color:var(--t3);box-shadow:none;border:1px solid var(--bdr2);cursor:not-allowed;{% endif %}" {% if user.role != 'utilisateur' %}disabled{% endif %}>
+                        <i class="bi bi-check-circle-fill"></i> Valider la transaction
+                    </button>
+                </form>
+            </div>
+            
+        </div>
+        {% elif accounts %}
         <div class="acc-grid stagger">
             {% for acc in accounts %}
             <div class="acc-card classification-{{ acc.classification }}"
@@ -179,6 +289,7 @@
             </div>
             {% endfor %}
         </div>
+        {% endif %}
     </main>
 </div>
 {% endblock %}

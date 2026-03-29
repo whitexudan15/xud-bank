@@ -105,9 +105,8 @@
             <div style="display:flex;gap:.7rem;">
                 {% for val, lbl, color, bg in [
                 (stats.total_events, 'Événements', 'var(--t1)', 'rgba(255,255,255,.04)'),
-                (stats.unresolved_alerts,'Alertes', 'var(--s-med)', 'rgba(245,158,11,.08)'),
-                (stats.locked_accounts, 'Verrouillés', 'var(--s-hi)', 'rgba(255,69,96,.08)'),
-                (stats.sqli_attempts, 'SQLi', 'var(--s-crit)','rgba(139,92,246,.08)'),
+                (stats.unresolved_alerts,'Alertes', 'var(--t1)', 'rgba(255,255,255,.04)'),
+                (stats.locked_accounts, 'Verrouillés', 'var(--t1)', 'rgba(255,255,255,.04)')
                 ] %}
                 <div style="background:{{ bg }};border:1px solid var(--bdr2);border-radius:10px;
                                         padding:.6rem 1rem;text-align:center;min-width:80px;">
@@ -185,7 +184,8 @@
                             <div class="action-title">Voir logs système purs</div>
                             <div class="action-sub">security.log brut</div>
                         </div>
-                        <i class="bi bi-box-arrow-up-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
+                        <i class="bi bi-box-arrow-up-right"
+                            style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
                     </a>
 
                     <a href="/admin/dashboard" class="action-item">
@@ -312,7 +312,7 @@
 
     function flushChartUpdates() {
         if (pendingChartAlerts.length === 0) return;
-        
+
         // Count how many of each level we got in this batch
         const levelCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
         pendingChartAlerts.forEach(a => {
@@ -322,7 +322,7 @@
         });
 
         const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        
+
         // Ajoute un point groupé sur le graphe
         chart.data.labels.push(now);
         levels.forEach(l => {
@@ -335,7 +335,7 @@
             chart.data.labels.shift();
             chart.data.datasets.forEach(d => d.data.shift());
         }
-        
+
         chart.update('active');
 
         // Met à jour les compteurs de légende
