@@ -521,3 +521,73 @@ async def view_raw_logs(
         return PlainTextResponse(content)
     
     return PlainTextResponse("Erreur : Fichier de log introuvable sur le serveur.", status_code=404)
+
+
+# ════════════════════════════════════════════════════════════
+# GET /admin/clear-data — Page de suppression des données
+# ════════════════════════════════════════════════════════════
+
+@router.get("/clear-data", response_class=HTMLResponse)
+async def clear_data_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user_data: dict = Depends(require_role("admin", "directeur")),
+):
+    """
+    Page de confirmation pour la suppression de toutes les alertes et événements.
+    """
+    # Compte les alertes et événements actuels
+    alerts_count_result = await db.execute(select(func.count(Alert.id)))
+    events_count_result = await db.execute(select(func.count(SecurityEvent.id)))
+    
+    alerts_count = alerts_count_result.scalar_one()
+    events_count = events_count_result.scalar_one()
+    
+    return templates.TemplateResponse("admin/clear_data.html", {
+        "request": request,
+        "user": user_data,
+        "alerts_count": alerts_count,
+        "events_count": events_count,
+    })
+
+
+# ════════════════════════════════════════════════════════════
+# POST /admin/clear-data — Suppression effective
+# ════════════════════════════════════════════════════════════
+
+@router.post("/clear-data")
+async def clear_all_data(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user_data: dict = Depends(require_role("admin", "directeur")),
+):
+    """
+    Supprime toutes les alertes et événements de la base de données.
+    Action réservée aux admin et directeur.
+    """
+    from secureDataMonitor.events.dispatcher import dispatcher
+    from fastapi.responses import RedirectResponse
+    
+    # Émet un événement avant la suppression
+    await dispatcher.emit("data_cleared", {
+        "ip": request.client.host,
+        "username": user_data.get("username"),
+        "role": user_data.get("role"),
+        "action": "clear_all_alerts_and_events",
+    })
+    
+    # Supprime d'abord les alertes (elles ont une foreign key vers events)
+    await db.execute(
+        Alert.__table__.delete()
+    )
+    
+    # Puis supprime les événements
+    await db.execute(
+        SecurityEvent.__table__.delete()
+    )
+    
+    await db.commit()
+    
+    log.warning(f"[ADMIN] {user_data['username']} a supprimé toutes les alertes et événements")
+    
+    return RedirectResponse(url="/admin/clear-data?deleted=1", status_code=302)

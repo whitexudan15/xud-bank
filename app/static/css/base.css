@@ -784,6 +784,11 @@ h6 {
     font-family: 'Syne', sans-serif;
 }
 
+.input-wrap {
+    position: relative;
+}
+
+.input-wrap i.fi,
 .xfield i.fi {
     position: absolute;
     left: .95rem;
@@ -833,6 +838,10 @@ h6 {
     cursor: pointer;
     transition: border-color .2s var(--ease) !important;
     outline: none !important;
+}
+
+.input-wrap .xselect {
+    padding: .75rem 1rem .75rem 2.65rem !important;
 }
 
 .xselect:focus {

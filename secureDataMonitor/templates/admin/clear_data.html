@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}Vider les données{% endblock %}
+
+{% block extra_css %}
+<style>
+    .clear-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        max-width: 800px;
+    }
+
+    .warning-box {
+        background: rgba(220, 38, 38, 0.08);
+        border: 2px solid rgba(220, 38, 38, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .stat-box {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--bdr2);
+        border-radius: 10px;
+        padding: 1.2rem;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: 2rem;
+        color: var(--t1);
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+        color: var(--t3);
+        margin-top: 0.4rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
+    .danger-btn {
+        background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s var(--ease);
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+
+    .danger-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    }
+
+    .danger-btn:active {
+        transform: translateY(0);
+    }
+
+    .cancel-btn {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--t2);
+        border: 1px solid var(--bdr2);
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s var(--ease);
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .cancel-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--bdr);
+        color: var(--t1);
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s var(--ease);
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: var(--bg-inv);
+        border: 1px solid var(--bdr);
+        border-radius: 16px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        transform: scale(0.9);
+        transition: transform 0.3s var(--ease);
+    }
+
+    .modal-overlay.active .modal-content {
+        transform: scale(1);
+    }
+
+    .modal-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: rgba(220, 38, 38, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .modal-title {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 1.3rem;
+        color: var(--t1);
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .modal-message {
+        font-size: 0.9rem;
+        color: var(--t2);
+        text-align: center;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+    <!-- SIDEBAR -->
+    <nav class="xsidebar">
+        <div class="sb-grp">
+            <a class="sb-a" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
+            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+        </div>
+        <div class="sb-grp">
+            <div class="sb-grp-label">Surveillance</div>
+            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+        </div>
+        {% if user.role in ['admin', 'directeur'] %}
+        <div class="sb-grp">
+            <div class="sb-grp-label">Système</div>
+            <a class="sb-a" href="/admin/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs bruts</a>
+            <a class="sb-a active" href="/admin/clear-data"><i class="bi bi-trash"></i>Vider les données</a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- MAIN -->
+    <main class="xmain">
+        <div style="max-width: 800px; margin: 0 auto; width: 100%;">
+            <!-- Header -->
+            <div style="margin-bottom: 2rem; animation: fadeSlideUp 0.35s var(--ease) both;">
+                <h4 style="font-size: 1.3rem; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="bi bi-trash" style="color: var(--s-hi);"></i>
+                    Supprimer les alertes et événements
+                </h4>
+                <p style="font-size: 0.85rem; color: var(--t2);">
+                    Zone de danger — Action irréversible
+                </p>
+            </div>
+
+            <!-- Success message -->
+            {% if request.query_params.get('deleted') == '1' %}
+            <div class="xcard" style="background: rgba(22, 163, 74, 0.1); border: 1px solid rgba(22, 163, 74, 0.3);
+                     margin-bottom: 1.5rem; animation: fadeSlideUp 0.35s var(--ease) both;">
+                <div class="xcard-body" style="padding: 1rem; display: flex; align-items: center; gap: 0.7rem;">
+                    <i class="bi bi-check-circle-fill" style="color: var(--s-low); font-size: 1.2rem;"></i>
+                    <div>
+                        <strong style="color: var(--t1); font-size: 0.9rem;">Données supprimées avec succès</strong>
+                        <p style="color: var(--t3); font-size: 0.75rem; margin: 0.2rem 0 0;">Toutes les alertes et événements ont été effacés de la base de données.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Warning box -->
+            <div class="warning-box" style="animation: fadeSlideUp 0.35s var(--ease) 0.05s both;">
+                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                    <i class="bi bi-exclamation-triangle-fill" 
+                       style="color: var(--s-hi); font-size: 1.5rem; flex-shrink: 0;"></i>
+                    <div>
+                        <h5 style="font-size: 1rem; color: var(--t1); margin-bottom: 0.5rem; font-family: 'Syne', sans-serif;">
+                            ⚠️ Attention : Action irréversible
+                        </h5>
+                        <p style="font-size: 0.85rem; color: var(--t2); line-height: 1.6; margin: 0;">
+                            Cette action va <strong>supprimer définitivement</strong> toutes les alertes et tous les événements 
+                            de la base de données. <strong>Cette opération ne peut pas être annulée.</strong>
+                            Assurez-vous de vouloir procéder avant de continuer.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="clear-grid" style="margin-top: 1.5rem; animation: fadeSlideUp 0.35s var(--ease) 0.1s both;">
+                <div class="xcard">
+                    <div class="xcard-hdr">
+                        <span class="xcard-hdr-title">
+                            <i class="bi bi-database" style="color: var(--lime);"></i>
+                            Données actuelles
+                        </span>
+                    </div>
+                    <div class="xcard-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: var(--s-med);" id="alerts-count">{{ alerts_count }}</div>
+                            <div class="stat-label">Alertes à supprimer</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: var(--lime);" id="events-count">{{ events_count }}</div>
+                            <div class="stat-label">Événements à supprimer</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="xcard" style="margin-top: 1.5rem; animation: fadeSlideUp 0.35s var(--ease) 0.15s both;">
+                <div class="xcard-body" style="padding: 2rem; text-align: center;">
+                    <button type="button" class="danger-btn" id="deleteBtn" onclick="showConfirmModal()">
+                        <i class="bi bi-trash-fill" style="margin-right: 0.5rem;"></i>
+                        Vider les alertes et événements
+                    </button>
+                    <div style="margin-top: 1rem;">
+                        <a href="/admin/" class="cancel-btn">
+                            <i class="bi bi-arrow-left" style="margin-right: 0.4rem;"></i>
+                            Retour au tableau de bord
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-content">
+        <div class="modal-icon">
+            <i class="bi bi-exclamation-octagon-fill" style="color: var(--s-hi); font-size: 2rem;"></i>
+        </div>
+        <h5 class="modal-title">Confirmer la suppression</h5>
+        <p class="modal-message">
+            Êtes-vous <strong>absolument certain</strong> de vouloir supprimer toutes les alertes et événements ?
+            <br><br>
+            <span style="color: var(--s-hi);">Cette action est irréversible.</span>
+        </p>
+        <div class="modal-actions">
+            <button type="button" class="cancel-btn" onclick="hideConfirmModal()">Annuler</button>
+            <form method="POST" action="/admin/clear-data" style="display: inline;">
+                <button type="submit" class="danger-btn">
+                    <i class="bi bi-trash-fill" style="margin-right: 0.5rem;"></i>
+                    Oui, tout supprimer
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showConfirmModal() {
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function hideConfirmModal() {
+        document.getElementById('confirmModal').classList.remove('active');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('confirmModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideConfirmModal();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideConfirmModal();
+        }
+    });
+</script>
+{% endblock %}
