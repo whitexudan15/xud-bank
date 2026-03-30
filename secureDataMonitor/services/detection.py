@@ -33,7 +33,6 @@ SQL_INJECTION_PATTERNS = [
     r"\b(?:or|and)\s+(?:true|false|null\s+is\s+null|not\s+false)\b",            # OR true / OR NOT false
     r"\b(?:or|and)\s+'[^']*'\s*like\s*'[^']*'",
         # ── UNION injection (obfusqué lettre par lettre) ─────────────────────────
-    _obf("UNION") + r".{0,30}?" + _obf("SELECT"),                               # UN/**/ION S/**/ELECT
     r"\bunion\s+(?:all\s+)?select\s+@@version",                                  # version leak
     r"\bunion\s+(?:all\s+)?select\s+(?:user|database|schema)\s*\(",             # info leak
 
