@@ -109,10 +109,21 @@
                                             class="bi bi-unlock-fill"></i>Déverrouiller</button>
                                 </form>
                                 {% else %}
-                                <form method="post" action="/admin/users/{{ u.username }}/lock" class="d-inline">
-                                    <button type="submit" class="btn-sm-danger"><i
-                                            class="bi bi-lock-fill"></i>Verrouiller</button>
-                                </form>
+                                    {% if u.role.value == 'admin' %}
+                                    <!-- Bouton Verrouiller désactivé UNIQUEMENT pour l'admin -->
+                                    <button type="button" class="btn-sm-danger" 
+                                            style="opacity:0.5;cursor:not-allowed;pointer-events:none;"
+                                            title="Impossible de verrouiller le compte admin"
+                                            disabled>
+                                        <i class="bi bi-lock-fill"></i>Verrouiller
+                                    </button>
+                                    {% else %}
+                                    <!-- Bouton Verrouiller activé pour tous sauf admin -->
+                                    <form method="post" action="/admin/users/{{ u.username }}/lock" class="d-inline">
+                                        <button type="submit" class="btn-sm-danger"><i
+                                                class="bi bi-lock-fill"></i>Verrouiller</button>
+                                    </form>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                         </tr>
@@ -208,10 +219,23 @@
                 statusCell.innerHTML = `<span class="bdg" style="background:rgba(180,255,69,.08);color:var(--lime);border:1px solid var(--lime-b);"><i class="bi bi-unlock-fill"></i>Actif</span>`;
             }
             
-            // Update action button to lock
+            // Update action button - DISABLED for admin, ENABLED for others
             const actionCell = row.querySelector('td:nth-child(7)');
             if (actionCell) {
-                actionCell.innerHTML = `<form method="post" action="/admin/users/${username}/lock" class="d-inline"><button type="submit" class="btn-sm-danger"><i class="bi bi-lock-fill"></i>Verrouiller</button></form>`;
+                if (username === 'admin') {
+                    // Admin account - disable lock button
+                    actionCell.innerHTML = `<button type="button" class="btn-sm-danger" 
+                                                style="opacity:0.5;cursor:not-allowed;pointer-events:none;"
+                                                title="Impossible de verrouiller le compte admin"
+                                                disabled>
+                                                <i class="bi bi-lock-fill"></i>Verrouiller
+                                            </button>`;
+                } else {
+                    // Other users - enable lock button
+                    actionCell.innerHTML = `<form method="post" action="/admin/users/${username}/lock" class="d-inline">
+                                                <button type="submit" class="btn-sm-danger"><i class="bi bi-lock-fill"></i>Verrouiller</button>
+                                            </form>`;
+                }
             }
             
             // Reset failed attempts display
