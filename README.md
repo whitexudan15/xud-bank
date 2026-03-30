@@ -178,7 +178,7 @@ Le module Monitor écoute activement les évènements pour bloquer le trafic :
 
 ```bash
 # 1. Cloner le repository
-git clone https://github.com/votre-repo/xud-bank.git
+git clone git@github.com:whitexudan15/xud-bank.git
 cd xud-bank
 
 # 2. Préparer l'environnement virtuel
@@ -374,15 +374,15 @@ ORDER BY timestamp DESC LIMIT 1;
 ```bash
 # Depuis la même IP, tenter 3 usernames différents en moins de 5 minutes
 curl -X POST http://localhost:8000/login \
-  -d "username=admin&password=wrong" \
+  -d "email=admin@xud-bank.com&password=wrong" \
   -c cookies.txt
 
 curl -X POST http://localhost:8000/login \
-  -d "username=soc&password=wrong" \
+  -d "email=admin@xud-bank.com&password=wrong" \
   -c cookies.txt
 
 curl -X POST http://localhost:8000/login \
-  -d "username=directeur&password=wrong" \
+  -d "email=admin@xud-bank.com&password=wrong" \
   -c cookies.txt
 ```
 
@@ -390,7 +390,7 @@ curl -X POST http://localhost:8000/login \
 - ✅ Événement `ENUM_ATTEMPT` créé (severity: MEDIUM)
 - ✅ Alerte MEDIUM générée
 - ✅ IP enregistrée comme suspecte
-- ✅ Compteur d'IP distinctes跟踪é
+- ✅ Compteur d'IP distinctes
 
 **Vérification SQL** :
 ```sql
@@ -417,7 +417,7 @@ HAVING COUNT(DISTINCT username_tried) >= 3;
 # Ou tester tard le soir / tôt le matin
 
 curl -X POST http://localhost:8000/login \
-  -d "username=pierre&password=Pierre@1234" \
+  -d "email=pierre@mail.com&password=Pierre@1234" \
   -c cookies.txt
 ```
 
