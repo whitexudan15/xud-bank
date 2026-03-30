@@ -303,6 +303,52 @@ async def admin_users(
     })
 
 
+# GET /admin/users/new — Formulaire création utilisateur
+# ⚠️ IMPORTANT: Doit être défini AVANT /users/{username}/... pour éviter les conflits
+@router.get("/users/new", response_class=HTMLResponse)
+async def new_user_page(
+    request: Request,
+    user_data: dict = Depends(require_role("admin", "directeur")),
+):
+    return templates.TemplateResponse("admin/new_user.html", {
+        "request": request,
+        "user": user_data,
+        "roles": ["admin", "directeur", "comptable", "utilisateur"],
+    })
+
+
+# POST /admin/users/new — Création
+@router.post("/users/new", response_class=HTMLResponse)
+async def create_user_admin(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user_data: dict = Depends(require_role("admin", "directeur")),
+):
+    from app.services.auth_service import create_user, UserRole
+    try:
+        await create_user(db, username=username, email=email,
+                         password=password, role=UserRole(role))
+        await db.commit()
+        log.info(f"[ADMIN] {user_data['username']} a créé l'utilisateur '{username}'")
+        return RedirectResponse(url="/admin/users?created=1", status_code=302)
+    except Exception as e:
+        error_str = str(e).lower()
+        if "unique" in error_str or "duplicate" in error_str:
+            error = "Ce nom d'utilisateur ou email est déjà pris."
+        else:
+            error = "Une erreur est survenue."
+        return templates.TemplateResponse("admin/new_user.html", {
+            "request": request,
+            "user": user_data,
+            "roles": ["admin", "directeur", "comptable", "utilisateur"],
+            "error": error,
+        })
+
+
 @router.post("/users/{username}/lock")
 async def lock_user(
     username: str,
@@ -440,50 +486,6 @@ async def resolve_alert_route(
     await db.commit()
     log.info(f"[ADMIN] Alerte {alert_id} résolue par {user_data['username']}")
     return RedirectResponse(url="/admin/alerts", status_code=302)
-
-# GET /admin/users/new — Formulaire création utilisateur
-@router.get("/users/new", response_class=HTMLResponse)
-async def new_user_page(
-    request: Request,
-    user_data: dict = Depends(require_role("admin", "directeur")),
-):
-    return templates.TemplateResponse("admin/new_user.html", {
-        "request": request,
-        "user": user_data,
-        "roles": ["admin", "directeur", "comptable", "utilisateur"],
-    })
-
-
-# POST /admin/users/new — Création
-@router.post("/users/new", response_class=HTMLResponse)
-async def create_user_admin(
-    request: Request,
-    username: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
-    role: str = Form(...),
-    db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("admin", "directeur")),
-):
-    from app.services.auth_service import create_user, UserRole
-    try:
-        await create_user(db, username=username, email=email,
-                         password=password, role=UserRole(role))
-        await db.commit()
-        return RedirectResponse(url="/admin/users?created=1", status_code=302)
-    except Exception as e:
-        error_str = str(e).lower()
-        if "unique" in error_str or "duplicate" in error_str:
-            error = "Ce nom d'utilisateur ou email est déjà pris."
-        else:
-            error = "Une erreur est survenue."
-        return templates.TemplateResponse("admin/new_user.html", {
-            "request": request,
-            "user": user_data,
-            "roles": ["admin", "directeur", "comptable", "utilisateur"],
-            "error": error,
-        })
-
 
 # ════════════════════════════════════════════════════════════
 # GET /admin/logs/raw — Affichage brut du fichier de log
