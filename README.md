@@ -202,7 +202,7 @@ psql $DATABASE_URL < seed_data.sql
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-L'application est maintenant accessible sur `http://localhost:8000`.
+L'application est maintenant accessible sur `https://xud-bank-production.up.railway.app`.
 
 ---
 
@@ -227,16 +227,20 @@ Cette section détaille comment tester chaque règle de détection et déclenche
 **Procédure** :
 ```bash
 # Effectuer 3 tentatives de connexion échouées en moins de 2 minutes
-curl -X POST http://localhost:8000/login \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=admin@xud-bank.com&password=WrongPassword1" \
   -c cookies.txt
 
-curl -X POST http://localhost:8000/login \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=admin@xud-bank.com&password=WrongPassword2" \
   -c cookies.txt
 
-curl -X POST http://localhost:8000/login \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=admin@xud-bank.com&password=WrongPassword3" \
+  -c cookies.txt
+
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
+  -d "email=admin@xud-bank.com&password=WrongPassword4" \
   -c cookies.txt
 ```
 
@@ -269,12 +273,12 @@ ORDER BY timestamp DESC LIMIT 1;
 **Procédure** :
 ```bash
 # Tenter une injection SQL dans le formulaire de login
-curl -X POST http://localhost:8000/login \
-  -d "username=' OR 1=1 --&password=test" \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
+  -d "email=' OR 1=1 --&password=test" \
   -c cookies.txt
 
 # Ou via l'URL
-curl "http://localhost:8000/data/accounts?id=1' OR '1'='1"
+curl "https://xud-bank-production.up.railway.app/data/accounts?id=1' OR '1'='1"
 ```
 
 **Résultat attendu** :
@@ -303,12 +307,12 @@ ORDER BY timestamp DESC LIMIT 1;
 **Procédure** :
 ```bash
 # Se connecter avec un compte utilisateur standard
-curl -X POST http://localhost:8000/login \
-  -d "username=dupont&password=Dupont@1234" \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
+  -d "email=pierre@mail.com&password=Pierre@1234" \
   -c cookies.txt
 
 # Tenter d'accéder au dashboard admin
-curl http://localhost:8000/admin/dashboard \
+curl https://xud-bank-production.up.railway.app/admin/dashboard \
   -b cookies.txt
 ```
 
@@ -335,13 +339,13 @@ ORDER BY timestamp DESC LIMIT 1;
 **Procédure** :
 ```bash
 # Se connecter avec un compte utilisateur
-curl -X POST http://localhost:8000/login \
-  -d "username=dupont&password=Dupont@1234" \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
+  -d "email=hor@xud-bank.com&password=Hor@1234" \
   -c cookies.txt
 
 # Effectuer 25 requêtes rapides vers les données sensibles
-for i in {1..25}; do
-  curl http://localhost:8000/data/accounts \
+for i in {1..22}; do
+  curl https://xud-bank-production.up.railway.app/data/accounts \
     -b cookies.txt &
 done
 wait
@@ -373,15 +377,15 @@ ORDER BY timestamp DESC LIMIT 1;
 **Procédure** :
 ```bash
 # Depuis la même IP, tenter 3 usernames différents en moins de 5 minutes
-curl -X POST http://localhost:8000/login \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=admin@xud-bank.com&password=wrong" \
   -c cookies.txt
 
-curl -X POST http://localhost:8000/login \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=hor@xud-bank.com&password=wrong" \
   -c cookies.txt
 
-curl -X POST http://localhost:8000/login \
+curl -X POST https://xud-bank-production.up.railway.app/authlogin \
   -d "email=directeur@xud-bank.com&password=wrong" \
   -c cookies.txt
 ```
@@ -416,7 +420,7 @@ HAVING COUNT(DISTINCT username_tried) >= 3;
 # Modifier temporairement ALLOWED_HOURS_START/END dans .env
 # Ou tester tard le soir / tôt le matin
 
-curl -X POST http://localhost:8000/login \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=pierre@mail.com&password=Pierre@1234" \
   -c cookies.txt
 ```
@@ -448,9 +452,9 @@ ORDER BY timestamp DESC;
 **Procédure** :
 ```bash
 # Tenter d'accéder à des fichiers système
-curl "http://localhost:8000/../../../etc/passwd"
-curl "http://localhost:8000/.env"
-curl "http://localhost:8000/admin/../config.py"
+curl "https://xud-bank-production.up.railway.app/../../../etc/passwd"
+curl "https://xud-bank-production.up.railway.app/.env"
+curl "https://xud-bank-production.up.railway.app/admin/../config.py"
 ```
 
 **Résultat attendu** :
@@ -474,9 +478,15 @@ ORDER BY timestamp DESC LIMIT 1;
 
 **Procédure** :
 ```bash
+# Se connecter avec un identifiant qu'a les droits d'accès /data/accounts
+curl -X POST https://xud-bank-production.up.railway.app/authlogin \
+  -d "email=pierre@mail.com&password=Pierre@1234" \
+  -c cookies.txt
+
 # Envoyer 50+ requêtes en moins d'une minute depuis la même IP
 for i in {1..60}; do
-  curl http://localhost:8000/data/accounts &
+  curl https://xud-bank-production.up.railway.app/data/accounts \
+  -b cookies.txt
 done
 wait
 ```
