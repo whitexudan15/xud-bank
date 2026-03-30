@@ -27,7 +27,7 @@
             <div>
                 <h4><i class="bi bi-bell" style="color:var(--lime);margin-right:.5rem;"></i>Alertes</h4>
                 <p class="sub">
-                    <span class="bdg bdg-HIGH">{{ unresolved_count }}</span>
+                    <span id="alerts-unresolved-count" class="bdg bdg-HIGH">{{ unresolved_count }}</span>
                     <span style="margin-left:.4rem;">alertes actives en attente</span>
                 </p>
             </div>
@@ -192,9 +192,11 @@
             pendingAlerts.push(msg.alert);
             
             // Update the badge count for active alerts
-            const badge = document.querySelector('.pg-hdr .bdg-HIGH');
+            const badge = document.getElementById('alerts-unresolved-count');
             if (badge) {
-                badge.textContent = parseInt(badge.textContent || 0) + 1;
+                const newCount = parseInt(badge.textContent || 0) + 1;
+                badge.textContent = newCount;
+                flashElement(badge);
             }
 
             if (!updateRequested) {
@@ -202,7 +204,45 @@
                 requestAnimationFrame(flushAlerts);
             }
         }
+        
+        if (msg.type === 'new_event') {
+            // Show a subtle notification that new activity occurred
+            // This provides context that events are happening even on alerts page
+            showActivityIndicator();
+        }
     };
+    
+    function flashElement(el) {
+        el.style.transition = 'transform 0.2s ease, box-shadow 0.3s ease';
+        el.style.transform = 'scale(1.1)';
+        el.style.boxShadow = '0 0 12px rgba(220, 38, 38, 0.5)';
+        setTimeout(() => {
+            el.style.transform = 'scale(1)';
+            el.style.boxShadow = '';
+        }, 300);
+    }
+    
+    let activityTimeout;
+    function showActivityIndicator() {
+        // Find or create activity indicator
+        let indicator = document.getElementById('activity-indicator');
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.id = 'activity-indicator';
+            indicator.className = 'bdg';
+            indicator.style.cssText = 'background:rgba(180,255,69,.1);color:var(--lime);border:1px solid var(--lime-b);margin-left:.5rem;font-size:.7rem;';
+            indicator.innerHTML = '<i class="bi bi-activity"></i> Activité';
+            const sub = document.querySelector('.pg-hdr .sub');
+            if (sub) sub.appendChild(indicator);
+        }
+        
+        // Flash the indicator
+        indicator.style.opacity = '1';
+        clearTimeout(activityTimeout);
+        activityTimeout = setTimeout(() => {
+            indicator.style.opacity = '0.5';
+        }, 2000);
+    }
 </script>
 {% endblock %}
 {% endblock %}

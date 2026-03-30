@@ -22,23 +22,19 @@ passlib[bcrypt]==1.7.4             # Hash bcrypt des mots de passe
 itsdangerous==2.2.0                # Signature sécurisée des cookies de session
 python-jose[cryptography]==3.3.0   # JWT (tokens session)
 
-# ── Variables d'environnement ─────────────────────────────────
+# ── Variables d'environnement
 python-dotenv==1.0.1               # Chargement du fichier .env
 
-# ── WebSocket ─────────────────────────────────────────────────
+# ── WebSocket
 websockets==13.1                   # Support WebSocket (alertes temps réel)
 
-# ── Validation des données ────────────────────────────────────
+# ── Validation des données
 pydantic==2.10.3                   # Validation schemas (intégré FastAPI)
 pydantic-settings==2.7.0           # Settings depuis .env via Pydantic
 
-# ── Logging ───────────────────────────────────────────────────
-# logging → stdlib Python, pas de dépendance externe
-
-# ── Utilitaires ───────────────────────────────────────────────
+# ── Utilitaires
 httpx==0.28.1                      # Client HTTP async (tests, webhooks)
 python-dateutil==2.9.0             # Manipulation dates (règles temporelles)
 
 greenlet==3.2.4
 bcrypt==3.2.2
-psycopg2

@@ -163,14 +163,14 @@
                             <div
                                 style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem;">
                                 <span class="bdg bdg-{{ level }}">{{ level }}</span>
-                                <span
+                                <span id="sev-count-{{ level }}"
                                     style="font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;color:var(--t1);">
                                     {{ severity_data.get(level,0) }}
                                 </span>
                             </div>
                             <div class="xprog">
-                                <div class="xprog-bar"
-                                    style="background:{{ color }};width:{{ (severity_data.get(level,0)/total_sev*100)|round }}%;">
+                                <div id="sev-bar-{{ level }}" class="xprog-bar"
+                                    style="background:{{ color }};width:{{ (severity_data.get(level,0)/total_sev*100)|round }}%;transition:width 0.3s ease;">
                                 </div>
                             </div>
                         </div>

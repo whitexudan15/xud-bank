@@ -161,24 +161,137 @@ function processEventsQueue(events) {
 
   // Update Stats Counters
   const statTotal = document.getElementById('stat-total-events');
-  if (statTotal) statTotal.textContent = parseInt(statTotal.textContent || 0) + events.length;
+  if (statTotal) {
+    const newCount = parseInt(statTotal.textContent || 0) + events.length;
+    statTotal.textContent = newCount;
+    statTotal.dataset.count = newCount;
+    flashElement(statTotal);
+  }
   
   let highCount = 0;
   let critCount = 0;
+  const severityCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
+  
   events.forEach(e => {
     const sev = typeof e.severity === 'object' ? e.severity.value : e.severity;
+    if (severityCounts[sev] !== undefined) severityCounts[sev]++;
     if (sev === 'HIGH' || sev === 'CRITICAL') highCount++;
     if (sev === 'CRITICAL') critCount++;
   });
   
+  // Update HIGH+ counter (the stat-val inside #stat-high)
   if (highCount > 0) {
-    const el = document.getElementById('stat-high');
-    if (el) el.textContent = parseInt(el.textContent || 0) + highCount;
+    const highCard = document.getElementById('stat-high');
+    if (highCard) {
+      const valEl = highCard.querySelector('.stat-val');
+      if (valEl) {
+        const newCount = parseInt(valEl.textContent || 0) + highCount;
+        valEl.textContent = newCount;
+        valEl.dataset.count = newCount;
+        flashElement(valEl);
+      }
+    }
   }
+  
+  // Update CRITICAL counter (the stat-val inside #stat-critical)
   if (critCount > 0) {
-    const el = document.getElementById('stat-critical');
-    if (el) el.textContent = parseInt(el.textContent || 0) + critCount;
+    const critCard = document.getElementById('stat-critical');
+    if (critCard) {
+      const valEl = critCard.querySelector('.stat-val');
+      if (valEl) {
+        const newCount = parseInt(valEl.textContent || 0) + critCount;
+        valEl.textContent = newCount;
+        valEl.dataset.count = newCount;
+        flashElement(valEl);
+      }
+    }
   }
+  
+  // Update severity distribution bars and counts
+  updateSeverityDistribution(severityCounts);
+  
+  // Update events chart with new data point
+  updateEventsChart(events);
+}
+
+function flashElement(el) {
+  el.style.transition = 'color 0.3s ease, transform 0.2s ease';
+  const originalColor = el.style.color;
+  el.style.color = 'var(--lime)';
+  el.style.transform = 'scale(1.1)';
+  setTimeout(() => {
+    el.style.color = originalColor;
+    el.style.transform = 'scale(1)';
+  }, 300);
+}
+
+function updateSeverityDistribution(newCounts) {
+  // Get all severity count elements and bars
+  const levels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+  let total = 0;
+  const currentCounts = {};
+  
+  levels.forEach(level => {
+    const countEl = document.getElementById(`sev-count-${level}`);
+    if (countEl) {
+      const current = parseInt(countEl.textContent || 0);
+      currentCounts[level] = current + (newCounts[level] || 0);
+      total += currentCounts[level];
+    }
+  });
+  
+  // Update each bar and count
+  levels.forEach(level => {
+    const countEl = document.getElementById(`sev-count-${level}`);
+    const barEl = document.getElementById(`sev-bar-${level}`);
+    if (countEl && barEl) {
+      countEl.textContent = currentCounts[level];
+      const percentage = total > 0 ? (currentCounts[level] / total * 100) : 0;
+      barEl.style.width = `${percentage}%`;
+      flashElement(countEl);
+    }
+  });
+}
+
+function updateEventsChart(events) {
+  // Try to find the chart instance on the page
+  const chartCanvas = document.getElementById('eventsChart');
+  if (!chartCanvas) return;
+  
+  // Access the Chart.js instance if it exists
+  const chartInstance = Chart.getChart(chartCanvas);
+  if (!chartInstance) return;
+  
+  // Group events by hour
+  const hourCounts = {};
+  events.forEach(e => {
+    const d = new Date(e.timestamp);
+    const hourKey = `${String(d.getHours()).padStart(2, '0')}:00`;
+    hourCounts[hourKey] = (hourCounts[hourKey] || 0) + 1;
+  });
+  
+  // Get the current hour
+  const now = new Date();
+  const currentHour = `${String(now.getHours()).padStart(2, '0')}:00`;
+  
+  // Find if current hour label exists
+  const labelIndex = chartInstance.data.labels.indexOf(currentHour);
+  if (labelIndex !== -1) {
+    // Update existing data point
+    chartInstance.data.datasets[0].data[labelIndex] += (hourCounts[currentHour] || events.length);
+  } else {
+    // Add new data point
+    chartInstance.data.labels.push(currentHour);
+    chartInstance.data.datasets[0].data.push(hourCounts[currentHour] || events.length);
+    
+    // Keep max 24 points
+    if (chartInstance.data.labels.length > 24) {
+      chartInstance.data.labels.shift();
+      chartInstance.data.datasets[0].data.shift();
+    }
+  }
+  
+  chartInstance.update('active');
 }
 
 // Ensure we don't have too many toasts on screen

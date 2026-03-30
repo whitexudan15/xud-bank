@@ -27,7 +27,7 @@
             <div>
                 <h4><i class="bi bi-list-ul" style="color:var(--lime);margin-right:.5rem;"></i>Événements de sécurité
                 </h4>
-                <p class="sub"><strong style="color:var(--t1);">{{ total }}</strong> événement(s)</p>
+                <p class="sub"><strong id="events-total" style="color:var(--t1);">{{ total }}</strong> événement(s)</p>
             </div>
         </div>
 
@@ -208,12 +208,64 @@
         const msg = JSON.parse(evt.data);
         if (msg.type === 'new_event') {
             pendingEvents.push(msg.event);
+            
+            // Update total events counter
+            const totalEl = document.getElementById('events-total');
+            if (totalEl) {
+                const newCount = parseInt(totalEl.textContent || 0) + 1;
+                totalEl.textContent = newCount;
+                flashElement(totalEl);
+            }
+            
             if (!updateRequested) {
                 updateRequested = true;
                 requestAnimationFrame(flushEvents);
             }
         }
+        
+        if (msg.type === 'new_alert') {
+            // Show notification that new alerts are coming in
+            showAlertNotification();
+        }
     };
+    
+    function flashElement(el) {
+        el.style.transition = 'color 0.3s ease, transform 0.2s ease';
+        el.style.color = 'var(--lime)';
+        el.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            el.style.color = 'var(--t1)';
+            el.style.transform = 'scale(1)';
+        }, 300);
+    }
+    
+    let alertTimeout;
+    function showAlertNotification() {
+        // Find or create alert notification indicator
+        let indicator = document.getElementById('alert-notification');
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.id = 'alert-notification';
+            indicator.className = 'bdg bdg-HIGH';
+            indicator.style.cssText = 'margin-left:.5rem;font-size:.7rem;cursor:pointer;';
+            indicator.innerHTML = '<i class="bi bi-bell-fill"></i> Nouvelle alerte';
+            indicator.onclick = () => window.location.href = '/admin/alerts';
+            const sub = document.querySelector('.pg-hdr .sub');
+            if (sub) sub.appendChild(indicator);
+        }
+        
+        // Flash the indicator
+        indicator.style.opacity = '1';
+        indicator.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            indicator.style.transform = 'scale(1)';
+        }, 200);
+        
+        clearTimeout(alertTimeout);
+        alertTimeout = setTimeout(() => {
+            indicator.style.opacity = '0.6';
+        }, 3000);
+    }
 </script>
 {% endblock %}
 {% endblock %}

@@ -103,19 +103,27 @@
             </div>
             <!-- Stats inline -->
             <div style="display:flex;gap:.7rem;">
-                {% for val, lbl, color, bg in [
-                (stats.total_events, 'Événements', 'var(--t1)', 'rgba(255,255,255,.04)'),
-                (stats.unresolved_alerts,'Alertes', 'var(--t1)', 'rgba(255,255,255,.04)'),
-                (stats.locked_accounts, 'Verrouillés', 'var(--t1)', 'rgba(255,255,255,.04)')
-                ] %}
-                <div style="background:{{ bg }};border:1px solid var(--bdr2);border-radius:10px;
+                <div id="idx-stat-total" style="background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:10px;
                                         padding:.6rem 1rem;text-align:center;min-width:80px;">
                     <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
-                                            color:{{ color }};line-height:1;">{{ val }}</div>
+                                            color:var(--t1);line-height:1;">{{ stats.total_events }}</div>
                     <div style="font-size:.67rem;color:var(--t3);margin-top:.2rem;font-weight:600;
-                                            text-transform:uppercase;letter-spacing:.6px;">{{ lbl }}</div>
+                                            text-transform:uppercase;letter-spacing:.6px;">Événements</div>
                 </div>
-                {% endfor %}
+                <div id="idx-stat-alerts" style="background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:10px;
+                                        padding:.6rem 1rem;text-align:center;min-width:80px;">
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
+                                            color:var(--t1);line-height:1;">{{ stats.unresolved_alerts }}</div>
+                    <div style="font-size:.67rem;color:var(--t3);margin-top:.2rem;font-weight:600;
+                                            text-transform:uppercase;letter-spacing:.6px;">Alertes</div>
+                </div>
+                <div id="idx-stat-locked" style="background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:10px;
+                                        padding:.6rem 1rem;text-align:center;min-width:80px;">
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
+                                            color:var(--t1);line-height:1;">{{ stats.locked_accounts }}</div>
+                    <div style="font-size:.67rem;color:var(--t3);margin-top:.2rem;font-weight:600;
+                                            text-transform:uppercase;letter-spacing:.6px;">Verrouillés</div>
+                </div>
             </div>
         </div>
 
@@ -160,7 +168,7 @@
                         </div>
                         <div>
                             <div class="action-title">Gérer les alertes</div>
-                            <div class="action-sub">{{ stats.unresolved_alerts }} en attente</div>
+                            <div id="idx-sub-alerts" class="action-sub">{{ stats.unresolved_alerts }} en attente</div>
                         </div>
                         <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
                     </a>
@@ -171,7 +179,7 @@
                         </div>
                         <div>
                             <div class="action-title">Historique événements</div>
-                            <div class="action-sub">{{ stats.total_events }} événements total</div>
+                            <div id="idx-sub-events" class="action-sub">{{ stats.total_events }} événements total</div>
                         </div>
                         <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
                     </a>
@@ -359,7 +367,71 @@
                 chartUpdateScheduled = true;
                 requestAnimationFrame(flushChartUpdates);
             }
+            
+            // Update unresolved alerts counter
+            const alertsStat = document.getElementById('idx-stat-alerts');
+            if (alertsStat) {
+                const valDiv = alertsStat.querySelector('div:first-child');
+                if (valDiv) {
+                    const newCount = parseInt(valDiv.textContent || 0) + 1;
+                    valDiv.textContent = newCount;
+                    flashElement(valDiv);
+                }
+            }
+            
+            // Update action item sub-text
+            const alertsSub = document.getElementById('idx-sub-alerts');
+            if (alertsSub) {
+                const current = parseInt(alertsSub.textContent) || 0;
+                alertsSub.textContent = `${current + 1} en attente`;
+            }
+        }
+        
+        if (msg.type === 'new_event') {
+            // Update total events counter
+            const totalStat = document.getElementById('idx-stat-total');
+            if (totalStat) {
+                const valDiv = totalStat.querySelector('div:first-child');
+                if (valDiv) {
+                    const newCount = parseInt(valDiv.textContent || 0) + 1;
+                    valDiv.textContent = newCount;
+                    flashElement(valDiv);
+                }
+            }
+            
+            // Update action item sub-text
+            const eventsSub = document.getElementById('idx-sub-events');
+            if (eventsSub) {
+                const current = parseInt(eventsSub.textContent) || 0;
+                eventsSub.textContent = `${current + 1} événements total`;
+            }
+            
+            // Check if it's a LOGIN_LOCKED event to update locked accounts count
+            const event = msg.event;
+            const eventType = typeof event.event_type === 'object' ? event.event_type.value : event.event_type;
+            if (eventType === 'LOGIN_LOCKED') {
+                const lockedStat = document.getElementById('idx-stat-locked');
+                if (lockedStat) {
+                    const valDiv = lockedStat.querySelector('div:first-child');
+                    if (valDiv) {
+                        const newCount = parseInt(valDiv.textContent || 0) + 1;
+                        valDiv.textContent = newCount;
+                        flashElement(valDiv);
+                    }
+                }
+            }
         }
     };
+    
+    function flashElement(el) {
+        el.style.transition = 'color 0.3s ease, transform 0.2s ease';
+        const originalColor = el.style.color;
+        el.style.color = 'var(--lime)';
+        el.style.transform = 'scale(1.15)';
+        setTimeout(() => {
+            el.style.color = originalColor;
+            el.style.transform = 'scale(1)';
+        }, 300);
+    }
 </script>
 {% endblock %}
