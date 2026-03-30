@@ -373,9 +373,16 @@ async def unlock_user(
 ):
     """Déverrouille un compte utilisateur (admin uniquement)."""
     from app.services.auth_service import unlock_account
-    await unlock_account(db, username)
+
+    # Récupère l'email via le username (unlock_account attend un email)
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Utilisateur '{username}' introuvable")
+
+    await unlock_account(db, user.email)
     await db.commit()
-    log.info(f"[ADMIN] {user_data['username']} a déverrouillé '{username}'")
+    log.info(f"[ADMIN] {user_data['username']} a déverrouillé '{user.username}:{user.email}'")
     return RedirectResponse(url="/admin/users", status_code=302)
 
 

@@ -115,15 +115,15 @@ async def create_user(
     return user
 
 
-async def unlock_account(db: AsyncSession, username: str) -> User | None:
+async def unlock_account(db: AsyncSession, email: str) -> User | None:
     """Déverrouille un compte (admin uniquement)."""
-    user = await get_user_by_username(db, username)
+    user = await get_user_by_email(db, email)
     if user:
         user.is_locked = False
         user.failed_attempts = 0
         user.last_failed_at = None
         await db.flush()
-        log.info(f"Compte '{username}' déverrouillé")
+        log.info(f"Compte '{user.username}:{user.email}' déverrouillé")
     return user
 
 
