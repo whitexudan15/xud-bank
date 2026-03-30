@@ -228,15 +228,15 @@ Cette section détaille comment tester chaque règle de détection et déclenche
 ```bash
 # Effectuer 3 tentatives de connexion échouées en moins de 2 minutes
 curl -X POST http://localhost:8000/login \
-  -d "username=admin&password=WrongPassword1" \
+  -d "email=admin@xud-bank.com&password=WrongPassword1" \
   -c cookies.txt
 
 curl -X POST http://localhost:8000/login \
-  -d "username=admin&password=WrongPassword2" \
+  -d "email=admin@xud-bank.com&password=WrongPassword2" \
   -c cookies.txt
 
 curl -X POST http://localhost:8000/login \
-  -d "username=admin&password=WrongPassword3" \
+  -d "email=admin@xud-bank.com&password=WrongPassword3" \
   -c cookies.txt
 ```
 
@@ -378,11 +378,11 @@ curl -X POST http://localhost:8000/login \
   -c cookies.txt
 
 curl -X POST http://localhost:8000/login \
-  -d "email=admin@xud-bank.com&password=wrong" \
+  -d "email=hor@xud-bank.com&password=wrong" \
   -c cookies.txt
 
 curl -X POST http://localhost:8000/login \
-  -d "email=admin@xud-bank.com&password=wrong" \
+  -d "email=directeur@xud-bank.com&password=wrong" \
   -c cookies.txt
 ```
 
