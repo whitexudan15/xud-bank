@@ -15,7 +15,7 @@ from sqlalchemy import select
 from app.database import get_db
 from app.config import get_settings
 from app.models.bank_account import BankAccount, AccountClassification
-from app.models.user import UserRole
+from app.models.user import User, UserRole
 from app.services.auth_service import get_current_user_data, require_role
 from secureDataMonitor.events.dispatcher import dispatcher
 from secureDataMonitor.services.detection import (
@@ -141,11 +141,20 @@ async def list_accounts(
 
     log.info(f"[DATA] {username} ({role}) a consulté {len(accounts_data)} compte(s) depuis {ip}")
 
+    # ── Récupère la liste des utilisateurs pour le formulaire de création ──
+    users_list = []
+    if role in (UserRole.comptable.value, UserRole.directeur.value):
+        users_result = await db.execute(
+            select(User).where(User.role == UserRole.utilisateur)
+        )
+        users_list = users_result.scalars().all()
+
     return templates.TemplateResponse("data.html", {
         "request": request,
         "user": user_data,
         "accounts": accounts_data,
         "total": len(accounts_data),
+        "users_list": users_list,
     })
 
 
@@ -315,3 +324,102 @@ async def add_transaction(
 
     await db.commit()
     return RedirectResponse(url=f"/data/accounts/{account_id}", status_code=302)
+
+
+# ════════════════════════════════════════════════════════════
+# POST /data/accounts/create — Création d'un nouveau compte bancaire
+# ════════════════════════════════════════════════════════════
+
+@router.post("/accounts/create")
+async def create_account(
+    request: Request,
+    id_compte: str = Form(...),
+    titulaire: str = Form(...),
+    solde: float = Form(...),
+    classification: str = Form(...),
+    owner_username: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user_data: dict = Depends(get_current_user_data),
+):
+    """
+    Crée un nouveau compte bancaire assigné à un utilisateur existant.
+    Accessible uniquement aux rôles 'comptable' et 'directeur'.
+    """
+    ip = request.client.host
+    username = user_data["username"]
+    role = user_data["role"]
+
+    # ── Vérification du rôle ─────────────────────────────────
+    if role not in (UserRole.comptable.value, UserRole.directeur.value):
+        await dispatcher.emit("unauthorized", {
+            "ip": ip,
+            "username": username,
+            "role": role,
+            "path": "/data/accounts/create",
+            "detail": "Tentative de création de compte sans autorisation",
+        })
+        return RedirectResponse(
+            url="/data/accounts?error=Action+non+autorisée",
+            status_code=302
+        )
+
+    # ── Validation du propriétaire ────────────────────────────
+    owner_result = await db.execute(
+        select(User).where(User.username == owner_username)
+    )
+    owner = owner_result.scalar_one_or_none()
+
+    if not owner:
+        return RedirectResponse(
+            url="/data/accounts?error=Propriétaire+introuvable",
+            status_code=302
+        )
+
+    if owner.role != UserRole.utilisateur:
+        return RedirectResponse(
+            url="/data/accounts?error=Le+propriétaire+doit+être+un+utilisateur",
+            status_code=302
+        )
+
+    # ── Validation de la classification ──────────────────────
+    try:
+        classification_enum = AccountClassification(classification)
+    except ValueError:
+        return RedirectResponse(
+            url="/data/accounts?error=Classification+invalide",
+            status_code=302
+        )
+
+    # Comptable ne peut pas créer de comptes SECRET
+    if role == UserRole.comptable.value and classification_enum == AccountClassification.secret:
+        return RedirectResponse(
+            url="/data/accounts?error=Comptable+non+autorisé+à+créer+des+comptes+SECRET",
+            status_code=302
+        )
+
+    # ── Création du compte ───────────────────────────────────
+    try:
+        new_account = BankAccount(
+            id_compte=id_compte,
+            titulaire=titulaire,
+            solde=Decimal(str(solde)),
+            classification=classification_enum,
+            owner_id=owner.id,
+            historique="[]",
+        )
+        db.add(new_account)
+        await db.commit()
+
+        log.info(f"[DATA] {username} ({role}) a créé le compte {id_compte} pour {owner_username}")
+
+        return RedirectResponse(
+            url="/data/accounts?success=Compte+créé+avec+succès",
+            status_code=302
+        )
+    except Exception as e:
+        await db.rollback()
+        log.error(f"[DATA] Erreur lors de la création du compte: {e}")
+        return RedirectResponse(
+            url="/data/accounts?error=Erreur+lors+de+la+création+du+compte",
+            status_code=302
+        )

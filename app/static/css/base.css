@@ -1118,6 +1118,11 @@ h6 {
     max-height: calc(100vh - 340px);
 }
 
+/* ── Utility classes ────────────────────────────────────────────────── */
+.hidden {
+    display: none !important;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media(max-width:991px) {
     .xsidebar {

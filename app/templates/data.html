@@ -105,6 +105,28 @@
             </div>
         </div>
 
+        <!-- Messages flash -->
+        {% if request.query_params.get('success') %}
+        <div style="display:flex;align-items:center;gap:1rem;
+                    background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);
+                    border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;backdrop-filter:blur(12px);">
+            <div class="stat-icon" style="background:rgba(34,197,94,.15);width:40px;height:40px;flex-shrink:0;">
+                <i class="bi bi-check-circle-fill" style="color:#22C55E;font-size:1.1rem;"></i>
+            </div>
+            <div style="font-weight:600;color:var(--t1);">{{ request.query_params.get('success') }}</div>
+        </div>
+        {% endif %}
+        {% if request.query_params.get('error') %}
+        <div style="display:flex;align-items:center;gap:1rem;
+                    background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
+                    border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;backdrop-filter:blur(12px);">
+            <div class="stat-icon" style="background:rgba(239,68,68,.15);width:40px;height:40px;flex-shrink:0;">
+                <i class="bi bi-exclamation-circle-fill" style="color:#EF4444;font-size:1.1rem;"></i>
+            </div>
+            <div style="font-weight:600;color:var(--t1);">{{ request.query_params.get('error') }}</div>
+        </div>
+        {% endif %}
+
         {% if not accounts and not account_detail %}
         <div style="display:flex;align-items:center;gap:1rem;
                     background:var(--bg-glass);border:1px solid var(--bdr2);
@@ -229,6 +251,89 @@
             
         </div>
         {% elif accounts %}
+
+        <!-- Formulaire de création de compte (comptable/directeur uniquement) -->
+        {% if user.role in ['comptable', 'directeur'] %}
+        <div class="xcard" style="margin-bottom:1.5rem;animation:fadeSlideUp .4s var(--ease) both;">
+            <div class="xcard-hdr" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"
+                 onclick="document.getElementById('createAccountForm').classList.toggle('hidden');">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                    <i class="bi bi-plus-circle-fill" style="color:var(--lime);font-size:1.1rem;"></i>
+                    <span style="font-weight:700;color:var(--t1);">Nouveau compte bancaire</span>
+                </div>
+                <i class="bi bi-chevron-down" id="toggleIcon" style="color:var(--t3);transition:transform .2s;"
+                   onclick="event.stopPropagation();this.style.transform=this.style.transform==='rotate(180deg)'?'rotate(0deg)':'rotate(180deg)';"></i>
+            </div>
+            <div class="xcard-body hidden" id="createAccountForm">
+                <form action="/data/accounts/create" method="post">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+                        <!-- Numéro de compte -->
+                        <div class="xfield">
+                            <label>Numéro de compte</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-hash" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                                <input type="text" name="id_compte" class="xinput" placeholder="Ex: FR76 1234..." required>
+                            </div>
+                        </div>
+
+                        <!-- Titulaire -->
+                        <div class="xfield">
+                            <label>Titulaire</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-person" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                                <input type="text" name="titulaire" class="xinput" placeholder="Nom du titulaire" required>
+                            </div>
+                        </div>
+
+                        <!-- Solde initial -->
+                        <div class="xfield">
+                            <label>Solde initial (€)</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-currency-euro" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                                <input type="number" step="0.01" name="solde" class="xinput" placeholder="0.00" value="0.00" required>
+                            </div>
+                        </div>
+
+                        <!-- Classification -->
+                        <div class="xfield">
+                            <label>Classification</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-shield" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                                <select name="classification" class="xinput xselect" required style="padding-left:2.5rem;">
+                                    <option value="public">Public</option>
+                                    <option value="confidentiel" selected>Confidentiel</option>
+                                    {% if user.role == 'directeur' %}
+                                    <option value="secret">Secret</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Propriétaire -->
+                        <div class="xfield" style="grid-column:span 2;">
+                            <label>Propriétaire du compte</label>
+                            <div style="position:relative;">
+                                <i class="bi bi-person-badge" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                                <select name="owner_username" class="xinput xselect" required style="padding-left:2.5rem;">
+                                    <option value="" disabled selected>-- Sélectionner un utilisateur --</option>
+                                    {% for u in users_list %}
+                                    <option value="{{ u.username }}">{{ u.username }} ({{ u.email }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:1.2rem;display:flex;justify-content:flex-end;">
+                        <button type="submit" class="btn-lime">
+                            <i class="bi bi-plus-lg"></i> Créer le compte
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="acc-grid stagger">
             {% for acc in accounts %}
             <div class="acc-card classification-{{ acc.classification }}"
