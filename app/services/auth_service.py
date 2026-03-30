@@ -178,6 +178,7 @@ async def authenticate(
 # ════════════════════════════════════════════════════════════
 
 from fastapi import Request, HTTPException, status
+from fastapi.responses import RedirectResponse
 
 
 def get_current_user_data(request: Request) -> dict:
@@ -201,6 +202,22 @@ def get_current_user_data(request: Request) -> dict:
     return data
 
 
+def require_login(request: Request) -> dict:
+    """
+    Dependency FastAPI pour les pages HTML : vérifie la session et redirige
+    vers /auth/login si non authentifié ou session expirée.
+    À utiliser avec Depends() dans les routes HTML.
+    """
+    try:
+        return get_current_user_data(request)
+    except HTTPException:
+        # Redirection vers la page de login au lieu de retourner du JSON
+        redirect = RedirectResponse(url="/auth/login", status_code=302)
+        # Supprime le cookie de session s'il est invalide
+        redirect.delete_cookie(settings.SESSION_COOKIE_NAME)
+        raise redirect
+
+
 def require_role(*roles: str):
     """
     Dependency FastAPI : vérifie le rôle de l'utilisateur connecté.
@@ -210,9 +227,22 @@ def require_role(*roles: str):
         @router.get("/admin/")
         async def admin_page(user=Depends(require_role("admin"))):
             ...
+    
+    Redirige vers /auth/login si non authentifié ou session expirée.
     """
     def _checker(request: Request) -> dict:
-        user_data = get_current_user_data(request)
+        # Utilise require_login pour gérer la redirection vers login
+        try:
+            user_data = require_login(request)
+        except RedirectResponse:
+            # Si require_login lève une redirection, on la propage
+            raise
+        except HTTPException:
+            # Fallback: redirection vers login
+            redirect = RedirectResponse(url="/auth/login", status_code=302)
+            redirect.delete_cookie(settings.SESSION_COOKIE_NAME)
+            raise redirect
+        
         if user_data["role"] not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

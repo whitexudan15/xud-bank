@@ -88,11 +88,22 @@ async def get_dashboard_stats(db: AsyncSession):
 async def _require_admin_or_analyst(request: Request, db: AsyncSession) -> dict:
     """Vérifie rôle admin ou analyste, émet événement si refus."""
     from secureDataMonitor.events.dispatcher import dispatcher
+    from fastapi.responses import RedirectResponse
+    
     try:
         user_data = require_role("admin", "directeur")(request)
         return user_data
-    except HTTPException:
-        user_data = get_current_user_data(request)
+    except RedirectResponse:
+        # Si non connecté, on laisse la redirection se propager vers login
+        raise
+    except HTTPException as e:
+        # Tente de récupérer les données utilisateur pour le logging
+        try:
+            user_data = get_current_user_data(request)
+        except HTTPException:
+            # Utilisateur non connecté - on utilise des valeurs par défaut
+            user_data = {"username": "anonymous", "role": "none"}
+        
         await dispatcher.emit("unauthorized", {
             "ip": request.client.host,
             "username": user_data.get("username"),

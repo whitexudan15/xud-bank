@@ -16,7 +16,7 @@ from app.database import get_db
 from app.config import get_settings
 from app.models.bank_account import BankAccount, AccountClassification
 from app.models.user import User, UserRole
-from app.services.auth_service import get_current_user_data, require_role
+from app.services.auth_service import get_current_user_data, require_role, require_login
 from secureDataMonitor.events.dispatcher import dispatcher
 from secureDataMonitor.services.detection import (
     record_data_access,
@@ -65,7 +65,7 @@ async def _check_request_security(request: Request, user_data: dict) -> None:
 async def list_accounts(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(get_current_user_data),
+    user_data: dict = Depends(require_login),
 ):
     """
     Affiche la liste des comptes bancaires selon le rôle :
@@ -167,7 +167,7 @@ async def account_detail(
     account_id: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(get_current_user_data),
+    user_data: dict = Depends(require_login),
 ):
     """
     Détail d'un compte bancaire spécifique.
@@ -278,7 +278,7 @@ async def add_transaction(
     montant: float = Form(...),
     libelle: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(get_current_user_data),
+    user_data: dict = Depends(require_login),
 ):
     """
     Ajoute une transaction à l'historique d'un compte et met à jour son solde.
@@ -339,7 +339,7 @@ async def create_account(
     classification: str = Form(...),
     owner_username: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(get_current_user_data),
+    user_data: dict = Depends(require_login),
 ):
     """
     Crée un nouveau compte bancaire assigné à un utilisateur existant.

@@ -148,6 +148,13 @@ async def forbidden_handler(request: Request, exc):
     )
 
 
+@app.exception_handler(401)
+async def unauthorized_handler(request: Request, exc):
+    """Gère les erreurs 401 (Non authentifié) en redirigeant vers /auth/login."""
+    # Redirige vers la page de login pour toute erreur 401
+    return RedirectResponse(url="/auth/login", status_code=302)
+
+
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
     from secureDataMonitor.services.detection import check_suspicious_url
