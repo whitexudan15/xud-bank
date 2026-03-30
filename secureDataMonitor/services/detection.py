@@ -28,18 +28,30 @@ log = logging.getLogger("secureDataMonitor.detection")
 
 # ── Patterns SQL Injection (Règle 2) ──────────────────────────
 SQL_INJECTION_PATTERNS = [
-    r"(\s|'|\")(or|and)\s+[\w'\"]+\s*=\s*[\w'\"]+",   # ' OR 1=1
-    r"union\s+(all\s+)?select",                          # UNION SELECT
-    r"drop\s+(table|database|index|view)",               # DROP TABLE
-    r";\s*--",                                           # ;--
-    r"insert\s+into",                                    # INSERT INTO
-    r"delete\s+from",                                    # DELETE FROM
-    r"update\s+\w+\s+set",                              # UPDATE ... SET
-    r"exec(\s|\()+",                                     # EXEC(
-    r"(xp_|sp_)\w+",                                    # stored procs
-    r"<script[\s>]",                                     # XSS bonus
-    r"\.\.\/",                                           # path traversal
-    r"%2e%2e%2f",                                        # path traversal encodé
+    r"(?:'|\"|`)\s*(?:or|and|\|\||&&)\s+[\w'\"` ]+\s*=\s*[\w'\"` ]+",          # ' OR 'a'='a
+    r"\b(?:or|and)\s+\d+\s*=\s*\d+",                                            # OR 1=1
+    r"\b(?:or|and)\s+(?:true|false|null\s+is\s+null|not\s+false)\b",            # OR true / OR NOT false
+    r"\b(?:or|and)\s+'[^']*'\s*like\s*'[^']*'",
+        # ── UNION injection (obfusqué lettre par lettre) ─────────────────────────
+    _obf("UNION") + r".{0,30}?" + _obf("SELECT"),                               # UN/**/ION S/**/ELECT
+    r"\bunion\s+(?:all\s+)?select\s+@@version",                                  # version leak
+    r"\bunion\s+(?:all\s+)?select\s+(?:user|database|schema)\s*\(",             # info leak
+
+    # ── Stacked queries / terminateurs ───────────────────────────────────────
+    r";\s*(?:drop|delete|update|insert|exec|truncate|create|alter)\b",           # ; DROP ...
+    r";\s*/\*",                                                                  # ; /*
+    r"';\s*\w",                                                                  # '; ANYTHING
+
+    # ── Boolean-based blind ───────────────────────────────────────────────────
+    r"'\s+and\s+\d+\s*=\s*\d+\s*--",                                            # ' AND 1=1--
+
+    # ── Encodages & obfuscation ───────────────────────────────────────────────
+    r"%(?:27|22|3b|2d%2d|3d|2f%2a)",                                            # URL-encodé : ' " ; -- = /*
+    r"(?:%[0-9a-f]{2}){4,}",                                                     # séquence longue d'URL-encoding
+
+    # ── XSS dans contexte SQL / injection mixte ───────────────────────────────
+    r"<script[\s>]",
+    r"javascript\s*:",
 ]
 
 SQL_REGEX = re.compile(
@@ -49,8 +61,8 @@ SQL_REGEX = re.compile(
 
 # ── Patterns URL suspects (Règle 3 étendue) ───────────────────
 SUSPICIOUS_URL_PATTERNS = [
-    r"\.\./",           # path traversal
-    r"%2e%2e",          # path traversal encodé
+    r"(?:\.\.[\\/]){2,}",                                                        # ../../..
+    r"(?:%2e%2e%2f|%2e%2e/|\.\.%2f){2,}",                                      # encodé
     r"/etc/passwd",
     r"/etc/shadow",
     r"\.php$",
