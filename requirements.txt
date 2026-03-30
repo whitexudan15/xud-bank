@@ -41,3 +41,4 @@ python-dateutil==2.9.0             # Manipulation dates (règles temporelles)
 
 greenlet==3.2.4
 bcrypt==3.2.2
+psycopg2
