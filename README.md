@@ -385,7 +385,7 @@ curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=hor@xud-bank.com&password=wrong" \
   -c cookies.txt
 
-curl -X POST https://xud-bank-production.up.railway.app/authlogin \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=directeur@xud-bank.com&password=wrong" \
   -c cookies.txt
 ```
@@ -479,7 +479,7 @@ ORDER BY timestamp DESC LIMIT 1;
 **Procédure** :
 ```bash
 # Se connecter avec un identifiant qu'a les droits d'accès /data/accounts
-curl -X POST https://xud-bank-production.up.railway.app/authlogin \
+curl -X POST https://xud-bank-production.up.railway.app/auth/login \
   -d "email=pierre@mail.com&password=Pierre@1234" \
   -c cookies.txt
 
