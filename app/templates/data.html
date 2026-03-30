@@ -301,8 +301,8 @@
                         <!-- Classification -->
                         <div class="xfield">
                             <label>Classification</label>
-                            <div style="position:relative;">
-                                <i class="bi bi-shield" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                            <div class="input-wrap">
+                                <i class="bi bi-shield fi"></i>
                                 <select name="classification" class="xinput xselect" required>
                                     <option value="public">Public</option>
                                     <option value="confidentiel" selected>Confidentiel</option>
@@ -316,8 +316,8 @@
                         <!-- Propriétaire -->
                         <div class="xfield">
                             <label>Propriétaire du compte</label>
-                            <div style="position:relative;">
-                                <i class="bi bi-person-badge" style="position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.9rem;pointer-events:none;z-index:2;"></i>
+                            <div class="input-wrap">
+                                <i class="bi bi-person-badge fi"></i>
                                 <select name="owner_username" class="xinput xselect" required>
                                     <option value="" disabled selected>-- Sélectionner un utilisateur --</option>
                                     {% for u in users_list %}
