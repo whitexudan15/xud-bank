@@ -49,7 +49,16 @@ def validate_inputs(fields: dict) -> tuple[bool, str, str]:
 async def login_page(request: Request):
     token = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if token:
-        return RedirectResponse(url="/data/accounts", status_code=302)
+        # Utilisateur déjà connecté, rediriger selon le rôle
+        from app.services.auth_service import decode_session_token
+        data = decode_session_token(token)
+        if data:
+            # Session valide, rediriger selon le rôle
+            if data["role"] == "admin":
+                return RedirectResponse(url="/admin/dashboard", status_code=302)
+            else:
+                return RedirectResponse(url="/data/accounts", status_code=302)
+        # Session invalide ou expirée, afficher la page de login
     return templates.TemplateResponse("login.html", {"request": request})
 
 
