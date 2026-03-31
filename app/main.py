@@ -157,7 +157,7 @@ async def unauthorized_handler(request: Request, exc):
 
     return templates_monitor.TemplateResponse(
         "errors/401.html",
-        {"request": request, "path": request.url.pth},
+        {"request": request, "path": request.url.path},
         status_code=401,
     )
 
