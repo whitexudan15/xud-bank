@@ -51,24 +51,6 @@ Le projet combine deux design patterns :
 ├─────────────────────────────────────────────┤
 │  PERSISTANCE   models/ + database.py        │  CRUD SQLAlchemy 2.0 (asyncpg)
 └─────────────────────────────────────────────┘
-```
-
-### Event-Driven Pattern (Pub/Sub)
-
-```
-Router (app bancaire)
-    │
-    │  dispatcher.emit("login_failed", {...})
-    ▼
-EventDispatcher (Lancement des Tâches Asynchrones)
-    │
-    ├──▶ handle_failed_login()  ──▶  detection.check_brute_force()
-    │                                logger.log_event()
-    │                                logger.create_alert()  ──▶  WebSocket Broadcast
-    │
-    └──▶ [autres handlers spécialisés]
-```
-
 ---
 
 ## 🛠️ 3. Stack Technologique
@@ -129,7 +111,6 @@ Voici les identifiants de test. La navigation et les accès sont fortement restr
 
 | Username | Mot de passe | Rôle | Accès & Privilèges |
 |---|---|---|---|
-| **`admin`** | `Admin@1234` | **admin (SOC)** | Accès complet, Dashboard Temps réel |
 | **`soc`** | `Soc@1234` | **admin (SOC)** | Tableau de gestion des Alertes |
 | **`hor`** | `Hor@1234` | **comptable** | Accès aux bilans |
 | **`directeur`** | `Directeur@1234` | **directeur** | Accès directoire |
