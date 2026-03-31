@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}403 — Accès refusé{% endblock %}
+{% block title %}401 — Non autorisé{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -177,18 +177,17 @@
     <div class="err-ring" style="width:500px;height:500px;border-color:rgba(255,69,96,.04);animation-delay:1s;"></div>
 
     <div class="err-wrap">
-        <div class="err-num-bg">403</div>
+        <div class="err-num-bg">401</div>
         <div class="err-icon"><i class="bi bi-shield-x"></i></div>
-        <h2 class="err-title" style="padding: .5rem;">FORBIDDEN</h2>
+        <h2 class="err-title" style="padding: .5rem;">UNAUTHORIZED</h2>
         <p class="err-sub">
-            Vous n'avez pas les privilèges nécessaires pour accéder à
+            Accès non autorisé à
             <code style="background:rgba(255,69,96,.08);border:1px solid rgba(255,69,96,.18);
-                          color:var(--s-hi);padding:.1rem .45rem;border-radius:6px;font-size:.85rem;">
-                {{ path }}
-            </code>
+                          color:var(--s-hi);padding:.5rem;font-size:.85rem;">{{ path }}</code>
+            Authentifiez vous !
         </p>
         <div class="err-actions">
-            <a href="/" class="err-btn-p"><i class="bi bi-house"></i>Accueil</a>
+            <a href="/auth/login" class="err-btn-p"><i class="bi bi-house"></i>S'Authentifier</a>
             <a href="/auth/logout" class="err-btn-s"><i class="bi bi-box-arrow-right"></i>Déconnexion</a>
         </div>
     </div>

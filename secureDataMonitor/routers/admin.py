@@ -3,8 +3,10 @@
 # Routes du tableau de bord sécurité (SOC / Admin)
 # Université de Kara – FAST-LPSIC S6 | 2025-2026
 # ============================================================
+from __future__ import annotations
 
 import logging
+import uuid
 import time
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status
@@ -86,31 +88,38 @@ async def get_dashboard_stats(db: AsyncSession):
 # ════════════════════════════════════════════════════════════
 
 async def _require_admin_or_analyst(request: Request, db: AsyncSession) -> dict:
-    """Vérifie rôle admin ou analyste, émet événement si refus."""
+    """Vérifie rôle admin ou directeur, émet événement si refus d'accès."""
     from secureDataMonitor.events.dispatcher import dispatcher
-    from fastapi.responses import RedirectResponse
     
     try:
-        user_data = require_role("admin", "directeur")(request)
-        return user_data
-    except RedirectResponse:
-        # Si non connecté, on laisse la redirection se propager vers login
-        raise
+        user_data = get_current_user_data(request)
     except HTTPException as e:
-        # Tente de récupérer les données utilisateur pour le logging
-        try:
-            user_data = get_current_user_data(request)
-        except HTTPException:
-            # Utilisateur non connecté - on utilise des valeurs par défaut
-            user_data = {"username": "anonymous", "role": "none"}
-        
+        if e.status_code == status.HTTP_401_UNAUTHORIZED:
+            await dispatcher.emit("unauthorized", {
+                "ip": request.client.host,
+                "username": "anonymous",
+                "role": "none",
+                "path": str(request.url.path),
+                "reason": "token absent ou expiré"
+            })
+            raise
+        raise
+
+    allowed_roles = {"admin", "directeur"}
+    if user_data.get("role") not in allowed_roles:
         await dispatcher.emit("unauthorized", {
             "ip": request.client.host,
             "username": user_data.get("username"),
             "role": user_data.get("role"),
             "path": str(request.url.path),
+            "reason": "rôle insuffisant"
         })
-        raise
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès refusé : droits insuffisants",
+        )
+
+    return user_data
 
 
 # ════════════════════════════════════════════════════════════
@@ -304,7 +313,6 @@ async def admin_users(
 
 
 # GET /admin/users/new — Formulaire création utilisateur
-# ⚠️ IMPORTANT: Doit être défini AVANT /users/{username}/... pour éviter les conflits
 @router.get("/users/new", response_class=HTMLResponse)
 async def new_user_page(
     request: Request,
@@ -349,24 +357,31 @@ async def create_user_admin(
         })
 
 
-@router.post("/users/{username}/lock")
+@router.post("/users/{id}/lock")
 async def lock_user(
-    username: str,
+    id: uuid.UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
     user_data: dict = Depends(require_role("admin")),
 ):
     """Verrouille un compte utilisateur (admin uniquement)."""
     from secureDataMonitor.services.detection import lock_account
-    await lock_account(db, username)
+
+    # Récupère l'email via le id (unlock_account attend un email)
+    result = await db.execute(select(User).where(User.id == id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Utilisateur introuvable")
+    
+    await lock_account(db, id)
     await db.commit()
-    log.info(f"[ADMIN] {user_data['username']} a verrouillé '{username}'")
+    log.info(f"[ADMIN] {user_data['username']} a verrouillé '{user.username}:{user.email}'")
     return RedirectResponse(url="/admin/users", status_code=302)
 
 
-@router.post("/users/{username}/unlock")
+@router.post("/users/{id}/unlock")
 async def unlock_user(
-    username: str,
+    id: uuid.UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
     user_data: dict = Depends(require_role("admin")),
@@ -375,12 +390,12 @@ async def unlock_user(
     from app.services.auth_service import unlock_account
 
     # Récupère l'email via le username (unlock_account attend un email)
-    result = await db.execute(select(User).where(User.username == username))
+    result = await db.execute(select(User).where(User.id == id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail=f"Utilisateur '{username}' introuvable")
+        raise HTTPException(status_code=404, detail=f"Utilisateur introuvable")
 
-    await unlock_account(db, user.email)
+    await unlock_account(db, id)
     await db.commit()
     log.info(f"[ADMIN] {user_data['username']} a déverrouillé '{user.username}:{user.email}'")
     return RedirectResponse(url="/admin/users", status_code=302)

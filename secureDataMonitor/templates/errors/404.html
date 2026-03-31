@@ -19,6 +19,15 @@
         padding: 2rem;
     }
 
+    .err-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--t1);
+        margin-bottom: .4rem;
+        position: relative;
+        z-index: 1;
+    }
+
     .err-wrap {
         text-align: center;
         animation: fadeSlideUp .45s var(--ease) both;
@@ -134,16 +143,12 @@
     <div class="err-wrap">
         <div class="err-num-bg">404</div>
         <div class="err-icon"><i class="bi bi-search"></i></div>
-        <h2 style="font-size:1.6rem;font-weight:800;color:var(--t1);margin-bottom:.4rem;position:relative;z-index:1;">
-            Page introuvable
+        <h2 class="err-title" style="padding: .5rem;">
+            NOT FOUND
         </h2>
         <p style="font-size:.9rem;color:var(--t2);margin-bottom:2rem;position:relative;z-index:1;">
-            La ressource
-            <code style="background:var(--lime-dim);border:1px solid var(--lime-b);
-                          color:var(--lime);padding:.1rem .45rem;border-radius:6px;font-size:.85rem;">
-                {{ path }}
-            </code>
-            n'existe pas.
+            La ressource <code style="background:rgba(255,69,96,.08);border:1px solid rgba(255,69,96,.18);
+                          color:var(--s-hi);padding:.5rem;font-size:.85rem;">{{ path }}</code> n'existe pas.
         </p>
         <a href="/" class="err-btn-p" style="position:relative;z-index:1;">
             <i class="bi bi-house"></i>Retour à l'accueil

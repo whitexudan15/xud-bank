@@ -11,8 +11,10 @@
 #   Règle 4 — Exfiltration masse : >20 consultations < 1 min
 #   Règle 5 — Énumération        : même IP, 3 usernames < 5 min
 # ============================================================
+from __future__ import annotations
 
 import re
+import uuid
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,15 +131,15 @@ async def check_brute_force(
     return False
 
 
-async def lock_account(db: AsyncSession, username: str) -> None:
+async def lock_account(db: AsyncSession, id: uuid.UUID) -> None:
     """Verrouille un compte utilisateur (is_locked = TRUE)."""
-    result = await db.execute(select(User).where(User.username == username))
+    result = await db.execute(select(User).where(User.id == id))
     user = result.scalar_one_or_none()
     if user:
         user.is_locked = True
         user.failed_attempts = settings.MAX_LOGIN_ATTEMPTS
         await db.flush()
-        log.warning(f"[Règle 1] Compte '{username}' verrouillé")
+        log.warning(f"[Règle 1] Compte '{user.username}:{user.email}' verrouillé")
 
 
 async def reset_failed_attempts(db: AsyncSession, username: str) -> None:

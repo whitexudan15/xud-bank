@@ -3,6 +3,7 @@
 # Logique métier d'authentification
 # Université de Kara – FAST-LPSIC S6 | 2025-2026
 # ============================================================
+from __future__ import annotations
 
 import logging
 from datetime import datetime
@@ -86,9 +87,9 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     return result.scalar_one_or_none()
 
 
-async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
+async def get_user_by_id(db: AsyncSession, id: uuid.UUID) -> User | None:
     """Récupère un utilisateur par son UUID."""
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == id))
     return result.scalar_one_or_none()
 
 
@@ -115,9 +116,9 @@ async def create_user(
     return user
 
 
-async def unlock_account(db: AsyncSession, email: str) -> User | None:
+async def unlock_account(db: AsyncSession, id: uuid.UUID) -> User | None:
     """Déverrouille un compte (admin uniquement)."""
-    user = await get_user_by_email(db, email)
+    user = await get_user_by_id(db, id)
     if user:
         user.is_locked = False
         user.failed_attempts = 0
@@ -211,11 +212,10 @@ def require_login(request: Request) -> dict:
     try:
         return get_current_user_data(request)
     except HTTPException:
-        # Redirection vers la page de login au lieu de retourner du JSON
-        redirect = RedirectResponse(url="/auth/login", status_code=302)
-        # Supprime le cookie de session s'il est invalide
-        redirect.delete_cookie(settings.SESSION_COOKIE_NAME)
-        raise redirect
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Non authentifié ou session expirée"
+        )
 
 
 def require_role(*roles: str):
@@ -232,16 +232,7 @@ def require_role(*roles: str):
     """
     def _checker(request: Request) -> dict:
         # Utilise require_login pour gérer la redirection vers login
-        try:
-            user_data = require_login(request)
-        except RedirectResponse:
-            # Si require_login lève une redirection, on la propage
-            raise
-        except HTTPException:
-            # Fallback: redirection vers login
-            redirect = RedirectResponse(url="/auth/login", status_code=302)
-            redirect.delete_cookie(settings.SESSION_COOKIE_NAME)
-            raise redirect
+        user_data = require_login(request)
         
         if user_data["role"] not in roles:
             raise HTTPException(

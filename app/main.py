@@ -3,6 +3,7 @@
 # Point d'entrée FastAPI — montage routers + lifespan
 # Université de Kara – FAST-LPSIC S6 | 2025-2026
 # ============================================================
+from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
@@ -152,13 +153,21 @@ async def forbidden_handler(request: Request, exc):
 async def unauthorized_handler(request: Request, exc):
     """Gère les erreurs 401 (Non authentifié) en redirigeant vers /auth/login."""
     # Redirige vers la page de login pour toute erreur 401
-    return RedirectResponse(url="/auth/login", status_code=302)
+    log.error(f"Erreur 401 sur {request.url.path} : {exc}")
+
+    return templates_monitor.TemplateResponse(
+        "errors/401.html",
+        {"request": request, "path": request.url.pth},
+        status_code=401,
+    )
 
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
     from secureDataMonitor.services.detection import check_suspicious_url
     from secureDataMonitor.events.dispatcher import dispatcher
+
+    log.error(f"Erreur 404 sur {request.url.path} : {exc}")
 
     path = request.url.path
     if check_suspicious_url(path):
@@ -177,10 +186,12 @@ async def not_found_handler(request: Request, exc):
 
 @app.exception_handler(500)
 async def server_error_handler(request: Request, exc):
+    error_type = type(exc).__name__
     log.error(f"Erreur 500 sur {request.url.path} : {exc}")
+    
     return templates_monitor.TemplateResponse(
-        "errors/404.html",
-        {"request": request, "path": request.url.path},
+        "errors/500.html",
+        {"request": request, "path": request.url.path, "error_type": error_type, "error_message": str(exc)},
         status_code=500,
     )
 
