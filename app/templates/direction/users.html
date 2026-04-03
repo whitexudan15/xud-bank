@@ -1,37 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Utilisateurs — Admin{% endblock %}
+{% block title %}Gestion Personnel — Direction{% endblock %}
 
 {% block body %}
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
-            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a" href="/direction/dashboard"><i class="bi bi-house"></i>Accueil</a>
         </div>
         <div class="sb-grp">
-            <div class="sb-grp-label">Surveillance</div>
-            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
-            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
-            <a class="sb-a active" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+            <div class="sb-grp-label">Gestion</div>
+            <a class="sb-a active" href="/direction/users"><i class="bi bi-people"></i>Personnel</a>
+            <a class="sb-a" href="/direction/users/new"><i class="bi bi-person-plus"></i>Recruter</a>
+            <a class="sb-a" href="/comptabilite/dashboard"><i class="bi bi-credit-card"></i>Comptes</a>
         </div>
-        {% if user.role in ['admin', 'directeur'] %}
         <div class="sb-grp">
-            <div class="sb-grp-label">Système</div>
-            <a class="sb-a" href="/admin/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs bruts</a>
-            <a class="sb-a" href="/admin/clear-data"><i class="bi bi-trash"></i>Vider les événements</a>
+            <div class="sb-grp-label">Rapports</div>
+            <a class="sb-a" href="/direction/export-pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i>Rapport</a>
         </div>
-        {% endif %}
     </nav>
     <main class="xmain" style="display:flex;flex-direction:column;">
 
         <div class="pg-hdr" style="flex-shrink:0;">
-            <div>
-                <h4><i class="bi bi-people" style="color:var(--lime);margin-right:.5rem;"></i>Gestion des utilisateurs
-                </h4>
-                <p class="sub"><strong style="color:var(--t1);">{{ users|length }}</strong> utilisateur(s) enregistré(s)
-                </p>
+            <div style="display:flex;align-items:center;gap:1.5rem;">
+                <a href="/direction/dashboard" style="display:inline-flex;align-items:center;justify-content:center;
+                   width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.04);
+                   border:1px solid var(--bdr2);color:var(--t2);text-decoration:none;transition:all .2s;">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div>
+                    <h4><i class="bi bi-people" style="color:var(--lime);margin-right:.5rem;"></i>Gestion du Personnel</h4>
+                    <p class="sub">Utilisateurs avec accès administratifs ou bancaires</p>
+                </div>
             </div>
-            <a href="/admin/users/new" class="btn-lime" style="width:auto;padding:.55rem 1.1rem;font-size:.85rem;">
+            <a href="/direction/users/new" class="btn-lime" style="width:auto;padding:.55rem 1.1rem;font-size:.85rem;">
                 <i class="bi bi-person-plus-fill"></i>Nouvel utilisateur</a>
         </div>
 
@@ -44,10 +45,9 @@
                             <th style="padding-left:1.4rem;">Utilisateur</th>
                             <th>Email</th>
                             <th>Rôle</th>
-                            <th style="text-align:center;">Échecs</th>
                             <th>Statut</th>
                             <th>Créé le</th>
-                            <th>Actions</th>
+                            <th style="text-align:right;padding-right:1.4rem;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -70,8 +70,8 @@
                             </td>
                             <td style="font-size:.82rem;color:var(--t2);">{{ u.email }}</td>
                             <td>
-                                {% if u.role.value == 'admin' %}
-                                <span class="u-role u-role-admin">admin</span>
+                                {% if u.role.value == 'soc' %}
+                                <span class="u-role u-role-soc">soc</span>
                                 {% elif u.role.value == 'directeur' %}
                                 <span class="u-role u-role-directeur">directeur</span>
                                 {% elif u.role.value == 'comptable' %}
@@ -79,13 +79,6 @@
                                 {% else %}
                                 <span class="u-role u-role-client">utilisateur</span>
                                 {% endif %}
-                            </td>
-                            <td style="text-align:center;">
-                                <span
-                                    style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:{% if u.failed_attempts >= 3 %}800{% else %}400{% endif %};
-                                             color:{% if u.failed_attempts >= 3 %}var(--s-hi){% else %}var(--t3){% endif %};">
-                                    {{ u.failed_attempts }}
-                                </span>
                             </td>
                             <td>
                                 {% if u.is_locked %}
@@ -101,27 +94,14 @@
                                 {% endif %}
                             </td>
                             <td style="font-size:.8rem;color:var(--t3);">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>
-                                {% if u.is_locked %}
-                                <form method="post" action="/admin/users/{{ u.id }}/unlock" class="d-inline">
-                                    <button type="submit" class="btn-sm-ok"><i
-                                            class="bi bi-unlock-fill"></i>Déverrouiller</button>
-                                </form>
+                            <td style="text-align:right;padding-right:1.4rem;">
+                                {% if u.id|string == user.user_id %}
+                                <span style="font-size:.7rem;color:var(--t3);">— vous-même —</span>
                                 {% else %}
-                                {% if u.role.value == 'admin' %}
-                                <!-- Bouton Verrouiller désactivé UNIQUEMENT pour l'admin -->
-                                <button type="button" class="btn-sm-danger"
-                                    style="opacity:0.5;cursor:not-allowed;pointer-events:none;"
-                                    title="Impossible de verrouiller le compte admin" disabled>
-                                    <i class="bi bi-lock-fill"></i>Verrouiller
-                                </button>
-                                {% else %}
-                                <!-- Bouton Verrouiller activé pour tous sauf admin -->
-                                <form method="post" action="/admin/users/{{ u.id }}/lock" class="d-inline">
-                                    <button type="submit" class="btn-sm-danger"><i
-                                            class="bi bi-lock-fill"></i>Verrouiller</button>
+                                <form method="post" action="/direction/users/{{ u.id }}/delete"
+                                      onsubmit="return confirm('⚠️ ATTENTION : Voulez-vous vraiment RELEVER CET UTILISATEUR de ses fonctions ? Cette action supprimera définitivement son compte.')">
+                                    <button type="submit" class="btn-sm-danger" style="background:rgba(255,69,96,.15);"><i class="bi bi-trash"></i> Relever</button>
                                 </form>
-                                {% endif %}
                                 {% endif %}
                             </td>
                         </tr>
@@ -161,90 +141,42 @@
         }
 
         if (msg.type === 'new_alert') {
-            // Show notification that alerts are happening
             showAlertNotification();
         }
     };
 
     function handleUserEvent(row, eventType, username) {
         if (eventType === 'LOGIN_FAILED') {
-            // Update failed attempts count
             const failCell = row.querySelector('td:nth-child(4) span');
             if (failCell) {
                 const current = parseInt(failCell.textContent) || 0;
                 const newCount = current + 1;
                 failCell.textContent = newCount;
-
-                // Update styling based on new count
                 if (newCount >= 3) {
                     failCell.style.fontWeight = '800';
                     failCell.style.color = 'var(--s-hi)';
                 }
-
-                // Flash effect
                 flashRow(row, 'rgba(245, 158, 11, 0.15)');
             }
         }
-
         if (eventType === 'LOGIN_LOCKED') {
-            // Update status to locked
             const statusCell = row.querySelector('td:nth-child(5)');
             if (statusCell) {
                 statusCell.innerHTML = `<span class="bdg" style="background:rgba(255,69,96,.1);color:var(--s-hi);border:1px solid rgba(255,69,96,.22);"><i class="bi bi-lock-fill"></i>Verrouillé</span>`;
             }
-
-            // Update action button to unlock
-            const actionCell = row.querySelector('td:nth-child(7)');
-            if (actionCell) {
-                actionCell.innerHTML = `<form method="post" action="/admin/users/${username}/unlock" class="d-inline"><button type="submit" class="btn-sm-ok"><i class="bi bi-unlock-fill"></i>Déverrouiller</button></form>`;
-            }
-
-            // Update failed attempts to show max
-            const failCell = row.querySelector('td:nth-child(4) span');
-            if (failCell) {
-                failCell.style.fontWeight = '800';
-                failCell.style.color = 'var(--s-hi)';
-            }
-
-            // Flash effect - red for locked
             flashRow(row, 'rgba(255, 69, 96, 0.15)', 2000);
         }
-
         if (eventType === 'LOGIN_SUCCESS' || eventType === 'UNLOCKED') {
-            // Update status to active
             const statusCell = row.querySelector('td:nth-child(5)');
             if (statusCell) {
                 statusCell.innerHTML = `<span class="bdg" style="background:rgba(180,255,69,.08);color:var(--lime);border:1px solid var(--lime-b);"><i class="bi bi-unlock-fill"></i>Actif</span>`;
             }
-
-            // Update action button - DISABLED for admin, ENABLED for others
-            const actionCell = row.querySelector('td:nth-child(7)');
-            if (actionCell) {
-                if (username === 'admin') {
-                    // Admin account - disable lock button
-                    actionCell.innerHTML = `<button type="button" class="btn-sm-danger" 
-                                                style="opacity:0.5;cursor:not-allowed;pointer-events:none;"
-                                                title="Impossible de verrouiller le compte admin"
-                                                disabled>
-                                                <i class="bi bi-lock-fill"></i>Verrouiller
-                                            </button>`;
-                } else {
-                    // Other users - enable lock button
-                    actionCell.innerHTML = `<form method="post" action="/admin/users/${username}/lock" class="d-inline">
-                                                <button type="submit" class="btn-sm-danger"><i class="bi bi-lock-fill"></i>Verrouiller</button>
-                                            </form>`;
-                }
-            }
-
-            // Reset failed attempts display
             const failCell = row.querySelector('td:nth-child(4) span');
             if (failCell) {
                 failCell.textContent = '0';
                 failCell.style.fontWeight = '400';
                 failCell.style.color = 'var(--t3)';
             }
-
-            // Flash effect - green for unlocked
             flashRow(row, 'rgba(180, 255, 69, 0.15)', 2000);
         }
     }
@@ -293,7 +225,7 @@
             indicator.className = 'bdg bdg-HIGH';
             indicator.style.cssText = 'margin-left:.5rem;font-size:.7rem;cursor:pointer;';
             indicator.innerHTML = '<i class="bi bi-bell-fill"></i> Alerte';
-            indicator.onclick = () => window.location.href = '/admin/alerts';
+            indicator.onclick = () => window.location.href = '/direction/dashboard';
             const sub = document.querySelector('.pg-hdr .sub');
             if (sub) sub.appendChild(indicator);
         }

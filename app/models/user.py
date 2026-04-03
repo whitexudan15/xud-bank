@@ -13,7 +13,7 @@ import enum
 
 
 class UserRole(str, enum.Enum):
-    admin       = "admin"
+    soc         = "soc"
     directeur   = "directeur"
     comptable   = "comptable"
     utilisateur = "utilisateur"

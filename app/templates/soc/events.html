@@ -1,26 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Événements — Admin{% endblock %}
+{% block title %}Événements — SOC{% endblock %}
 
 {% block body %}
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
-            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a" href="/soc/dashboard"><i class="bi bi-house"></i>Dashboard</a>
+             <a class="sb-a" href="/soc/"><i class="bi bi-house"></i>Graphes</a>
         </div>
         <div class="sb-grp">
             <div class="sb-grp-label">Surveillance</div>
-            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
-            <a class="sb-a active" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
-            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+            <a class="sb-a" href="/soc/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a active" href="/soc/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a" href="/soc/users"><i class="bi bi-people"></i>Utilisateurs</a>
         </div>
-        {% if user.role in ['admin', 'directeur'] %}
         <div class="sb-grp">
             <div class="sb-grp-label">Système</div>
-            <a class="sb-a" href="/admin/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs bruts</a>
-            <a class="sb-a" href="/admin/clear-data"><i class="bi bi-trash"></i>Vider les événements</a>
+            <a class="sb-a" href="/soc/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs</a>
+            <a class="sb-a" href="/soc/clear-data"><i class="bi bi-trash"></i>Clear Data</a>
         </div>
-        {% endif %}
     </nav>
     <main class="xmain" style="display:flex;flex-direction:column;">
 
@@ -28,8 +26,13 @@
             <div>
                 <h4><i class="bi bi-list-ul" style="color:var(--lime);margin-right:.5rem;"></i>Événements de sécurité
                 </h4>
-                <p class="sub"><strong id="events-total" style="color:var(--t1);">{{ total }}</strong> événement(s)</p>
+                <p class="sub" style="margin-top: .5rem;"><strong id="events-total" class="bdg bdg-LOW" style="color:var(--t1);">{{ total }}</strong> événement(s)</p>
             </div>
+            <a href="/soc/dashboard" style="display:inline-flex;align-items:center;gap:.4rem;
+               background:transparent;border:1.5px solid var(--lime);border-radius:9px;
+               color:var(--t2);padding:.4rem .9rem;font-size:.8rem;font-weight:600;text-decoration:none;">
+                <i class="bi bi-arrow-left"></i>Dashboard
+            </a>
         </div>
 
         <!-- Filters -->
@@ -60,7 +63,7 @@
                        box-shadow:0 4px 16px rgba(180,255,69,.22);">
                     <i class="bi bi-funnel-fill"></i>Filtrer
                 </button>
-                <a href="/admin/events" style="display:inline-flex;align-items:center;gap:.35rem;
+                <a href="/soc/events" style="display:inline-flex;align-items:center;gap:.35rem;
                    background:transparent;border:1.5px solid var(--bdr2);border-radius:9px;color:var(--t2);
                    padding:.4rem .9rem;font-size:.8rem;font-weight:600;text-decoration:none;transition:all .18s;">
                     <i class="bi bi-x-lg"></i>Reset
@@ -250,7 +253,7 @@
             indicator.className = 'bdg bdg-HIGH';
             indicator.style.cssText = 'margin-left:.5rem;font-size:.7rem;cursor:pointer;';
             indicator.innerHTML = '<i class="bi bi-bell-fill"></i> Nouvelle alerte';
-            indicator.onclick = () => window.location.href = '/admin/alerts';
+            indicator.onclick = () => window.location.href = '/soc/alerts';
             const sub = document.querySelector('.pg-hdr .sub');
             if (sub) sub.appendChild(indicator);
         }

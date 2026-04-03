@@ -175,7 +175,7 @@ async def handle_unknown_user(data: dict) -> None:
 async def handle_unauthorized(data: dict) -> None:
     """
     Événement : UNAUTHORIZED_ACCESS
-    Règle 3   : accès /admin/ sans rôle admin → HIGH
+    Règle 3   : accès /admin/ sans rôle soc → HIGH
     """
     async with AsyncSessionLocal() as db:
         event = await sec_logger.log_event(

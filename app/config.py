@@ -7,6 +7,9 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from functools import lru_cache
+from jinja2 import FileSystemLoader, Environment, FileSystemBytecodeCache
+from starlette.templating import Jinja2Templates
+import os
 
 
 class Settings(BaseSettings):
@@ -81,3 +84,23 @@ def get_settings() -> Settings:
 
 # Instance globale accessible directement si besoin
 settings = get_settings()
+
+
+# ════════════════════════════════════════════════════════════
+# TEMPLATES JINJA2
+# ════════════════════════════════════════════════════════════
+
+# Enable bytecode caching for production performance
+_cache_dir = os.path.join(os.path.dirname(__file__), '..', '.cache', 'jinja2')
+os.makedirs(_cache_dir, exist_ok=True)
+
+_jinja_env = Environment(
+    loader=FileSystemLoader([
+        "app/templates",
+    ]),
+    autoescape=True,
+    bytecode_cache=FileSystemBytecodeCache(_cache_dir),
+    auto_reload=False,
+)
+
+templates = Jinja2Templates(env=_jinja_env)

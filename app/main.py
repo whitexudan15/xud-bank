@@ -7,13 +7,11 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from jinja2 import FileSystemLoader, Environment
-from fastapi import FastAPI, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.templating import Jinja2Templates
 
-from app.config import get_settings
+from app.config import get_settings, templates
 from app.database import check_db_connection, close_db
 from secureDataMonitor.events.handlers import register_all_handlers
 from secureDataMonitor.services.logger import setup_file_logger, stop_file_logger
@@ -21,16 +19,9 @@ from secureDataMonitor.services.logger import setup_file_logger, stop_file_logge
 settings = get_settings()
 log = logging.getLogger("xud_bank")
 
-# ── Loader Jinja2 combiné (app + secureDataMonitor) ───────────
-jinja_env = Environment(
-    loader=FileSystemLoader([
-        "app/templates",
-        "secureDataMonitor/templates",
-    ]),
-    autoescape=True,
-)
-templates_app     = Jinja2Templates(env=jinja_env)
-templates_monitor = Jinja2Templates(env=jinja_env)
+# Templates (importés depuis config.py)
+templates_app = templates
+templates_monitor = templates
 
 
 # ════════════════════════════════════════════════════════════
@@ -90,13 +81,17 @@ app.mount("/static/monitor", StaticFiles(directory="secureDataMonitor/static"), 
 # ════════════════════════════════════════════════════════════
 
 from app.routers.auth import router as auth_router
-from app.routers.data import router as data_router
-from secureDataMonitor.routers.admin import router as admin_router
+from app.routers.soc import router as soc_router
+from app.routers.direction import router as direction_router
+from app.routers.comptabilite import router as comptabilite_router
+from app.routers.client import router as client_router
 from secureDataMonitor.routers.api_alerts import router as alerts_router
 
 app.include_router(auth_router)
-app.include_router(data_router)
-app.include_router(admin_router)
+app.include_router(soc_router)
+app.include_router(direction_router)
+app.include_router(comptabilite_router)
+app.include_router(client_router)
 app.include_router(alerts_router)
 
 
@@ -134,7 +129,8 @@ async def forbidden_handler(request: Request, exc):
     except Exception:
         username, role = None, "anonymous"
 
-    if request.url.path.startswith("/admin"):
+    # Monitoring des accès non autorisés aux zones sensibles
+    if request.url.path.startswith(("/soc", "/direction", "/comptabilite")):
         await dispatcher.emit("unauthorized", {
             "ip": request.client.host,
             "username": username,

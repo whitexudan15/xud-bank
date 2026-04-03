@@ -22,7 +22,7 @@ INSERT INTO users (id, username, email, password_hash, role, is_locked, failed_a
     'soc',
     'soc@xud-bank.com',
     '$2b$12$9iJQsLFaA4X7ghXMDpasW.oVoyJJo1rUsDzph3iHrg/up3D7i7LPS',
-    'admin',
+    'soc',
     FALSE, 0,
     NOW() - INTERVAL '60 days'
 ),

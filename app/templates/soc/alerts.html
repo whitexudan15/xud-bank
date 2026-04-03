@@ -1,52 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Alertes — Admin{% endblock %}
+{% block title %}Alertes — SOC{% endblock %}
 
 {% block body %}
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
-            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a" href="/soc/dashboard"><i class="bi bi-house"></i>Dashboard</a>
         </div>
         <div class="sb-grp">
             <div class="sb-grp-label">Surveillance</div>
-            <a class="sb-a active" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
-            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
-            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+            <a class="sb-a active" href="/soc/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a" href="/soc/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a" href="/soc/users"><i class="bi bi-people"></i>Utilisateurs</a>
         </div>
-        {% if user.role in ['admin', 'directeur'] %}
         <div class="sb-grp">
             <div class="sb-grp-label">Système</div>
-            <a class="sb-a" href="/admin/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs bruts</a>
-            <a class="sb-a" href="/admin/clear-data"><i class="bi bi-trash"></i>Vider les événements</a>
+            <a class="sb-a" href="/soc/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs</a>
+            <a class="sb-a" href="/soc/clear-data"><i class="bi bi-trash"></i>Clear Data</a>
         </div>
-        {% endif %}
     </nav>
     <main class="xmain" style="display:flex;flex-direction:column;">
         <!-- Header -->
         <div class="pg-hdr" style="flex-shrink:0;">
             <div>
                 <h4><i class="bi bi-bell" style="color:var(--lime);margin-right:.5rem;"></i>Alertes</h4>
-                <p class="sub">
+                <p class="sub" style="margin-top: .5rem;">
                     <span id="alerts-unresolved-count" class="bdg bdg-HIGH">{{ unresolved_count }}</span>
                     <span style="margin-left:.4rem;">alertes actives en attente</span>
                 </p>
             </div>
-            <div style="display:flex;gap:.5rem;">
-                <a href="?resolved=false" style="display:inline-flex;align-items:center;gap:.4rem;padding:.38rem 1rem;border-radius:9px;
-                          font-size:.8rem;font-weight:700;text-decoration:none;transition:all .18s;
-                          font-family:'Syne',sans-serif;
-                          {% if not show_resolved %}background:var(--lime);color:var(--t-inv);border:1px solid var(--lime);box-shadow:0 4px 16px rgba(180,255,69,.28);
-                          {% else %}background:transparent;color:var(--t2);border:1px solid var(--bdr2);{% endif %}">
-                    <i class="bi bi-bell-fill"></i>Actives
+            <div style="display:flex;gap:.5rem;align-items:center;">
+                <a href="/soc/dashboard" style="display:inline-flex;align-items:center;gap:.4rem;
+                   background:transparent;border:1.5px solid var(--lime);border-radius:9px;
+                   color:var(--t2);padding:.4rem .9rem;font-size:.8rem;font-weight:600;text-decoration:none;">
+                    <i class="bi bi-arrow-left"></i>Dashboard
                 </a>
-                <a href="?resolved=true" style="display:inline-flex;align-items:center;gap:.4rem;padding:.38rem 1rem;border-radius:9px;
-                          font-size:.8rem;font-weight:700;text-decoration:none;transition:all .18s;
-                          font-family:'Syne',sans-serif;
-                          {% if show_resolved %}background:var(--bg-glass);color:var(--t1);border:1px solid var(--bdr2);
-                          {% else %}background:transparent;color:var(--t2);border:1px solid var(--bdr2);{% endif %}">
-                    <i class="bi bi-check2-all"></i>Résolues
-                </a>
+                <div style="display:flex;gap:.5rem;">
+                    <a href="?resolved=false" style="display:inline-flex;align-items:center;gap:.4rem;padding:.38rem 1rem;border-radius:9px;
+                              font-size:.8rem;font-weight:700;text-decoration:none;transition:all .18s;
+                              font-family:'Syne',sans-serif;
+                              {% if not show_resolved %}background:var(--lime);color:var(--t-inv);border:1px solid var(--lime);box-shadow:0 4px 16px rgba(180,255,69,.28);
+                              {% else %}background:transparent;color:var(--t2);border:1px solid var(--bdr2);{% endif %}">
+                        <i class="bi bi-bell-fill"></i>Actives
+                    </a>
+                    <a href="?resolved=true" style="display:inline-flex;align-items:center;gap:.4rem;padding:.38rem 1rem;border-radius:9px;
+                              font-size:.8rem;font-weight:700;text-decoration:none;transition:all .18s;
+                              font-family:'Syne',sans-serif;
+                              {% if show_resolved %}background:var(--lime);color:var(--t-inv);border:1px solid var(--lime);box-shadow:0 4px 16px rgba(180,255,69,.28);
+                              {% else %}background:transparent;color:var(--t2);border:1px solid var(--bdr2);{% endif %}">
+                        <i class="bi bi-check2-all"></i>Résolues
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -88,7 +92,7 @@
                             </td>
                             <td>
                                 {% if not a.resolved %}
-                                <form method="post" action="/admin/alerts/{{ a.id }}/resolve">
+                                <form method="post" action="/soc/alerts/{{ a.id }}/resolve">
                                     <button type="submit" class="btn-sm-ok"><i
                                             class="bi bi-check2"></i>Résoudre</button>
                                 </form>
@@ -161,7 +165,7 @@
             `;
             
             const actionHtml = `
-                <form method="post" action="/admin/alerts/${a.id}/resolve">
+                <form method="post" action="/soc/alerts/${a.id}/resolve">
                     <button type="submit" class="btn-sm-ok"><i class="bi bi-check2"></i>Résoudre</button>
                 </form>
             `;

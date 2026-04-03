@@ -1,35 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Nouvel utilisateur — Admin{% endblock %}
+{% block title %}Recrutement — Direction{% endblock %}
 
 {% block body %}
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a active" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
-            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a" href="/direction/dashboard"><i class="bi bi-house"></i>Accueil</a>
         </div>
         <div class="sb-grp">
-            <div class="sb-grp-label">Surveillance</div>
-            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
-            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
-            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+            <div class="sb-grp-label">Gestion</div>
+            <a class="sb-a" href="/direction/users"><i class="bi bi-people"></i>Personnel</a>
+            <a class="sb-a active" href="/direction/users/new"><i class="bi bi-person-plus"></i>Recruter</a>
+            <a class="sb-a" href="/comptabilite/dashboard"><i class="bi bi-credit-card"></i>Comptes</a>
         </div>
-        {% if user.role in ['admin', 'directeur'] %}
         <div class="sb-grp">
-            <div class="sb-grp-label">Système</div>
-            <a class="sb-a" href="/admin/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs bruts</a>
+            <div class="sb-grp-label">Rapports</div>
+            <a class="sb-a" href="/direction/export-pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i>Rapport</a>
         </div>
-        {% endif %}
     </nav>
     <main class="xmain">
         <div class="pg-hdr">
             <div>
                 <h4><i class="bi bi-person-plus" style="color:var(--lime);margin-right:.5rem;"></i>Créer un utilisateur
                 </h4>
-                <p class="sub">Ajouter un nouveau membre avec ses privilèges</p>
+                <p class="sub" style="margin-top:.5rem;">Ajouter un nouveau membre avec ses privilèges</p>
             </div>
-            <a href="/admin/users" style="display:inline-flex;align-items:center;gap:.4rem;
-               background:transparent;border:1.5px solid var(--bdr2);border-radius:9px;
+            <a href="/direction/users" style="display:inline-flex;align-items:center;gap:.4rem;
+               background:transparent;border:1.5px solid var(--time);border-radius:9px;
                color:var(--t2);padding:.4rem .9rem;font-size:.8rem;font-weight:600;text-decoration:none;">
                 <i class="bi bi-arrow-left"></i>Retour
             </a>
@@ -47,13 +44,13 @@
                 </div>
                 {% endif %}
 
-                <form method="post" action="/admin/users/new" novalidate>
+                <form method="post" action="/direction/users/new" novalidate>
 
                     <div class="xfield">
                         <label>Nom d'utilisateur</label>
                         <div class="input-wrap">
                             <i class="bi bi-person fi"></i>
-                            <input type="text" name="username" class="xinput" placeholder="jean.dupont" required />
+                            <input type="text" name="username" class="xinput" placeholder="dupont" required />
                         </div>
                     </div>
 
@@ -61,7 +58,7 @@
                         <label>Adresse e-mail</label>
                         <div class="input-wrap">
                             <i class="bi bi-envelope fi"></i>
-                            <input type="email" name="email" class="xinput" placeholder="jean@xud-bank.com" required />
+                            <input type="email" name="email" class="xinput" placeholder="dupont@xud-bank.com" required />
                         </div>
                     </div>
 

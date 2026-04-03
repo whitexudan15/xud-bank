@@ -197,7 +197,7 @@ xud-bank/
 | `username` | VARCHAR(50) | UNIQUE, NOT NULL | Nom d'utilisateur |
 | `email` | VARCHAR(100) | UNIQUE, NOT NULL | Email (utilisé pour login) |
 | `password_hash` | VARCHAR(255) | NOT NULL | Hash bcrypt du mot de passe |
-| `role` | user_role (ENUM) | NOT NULL, DEFAULT 'utilisateur' | Rôle (admin/directeur/comptable/utilisateur) |
+| `role` | user_role (ENUM) | NOT NULL, DEFAULT 'utilisateur' | Rôle (soc/directeur/comptable/utilisateur) |
 | `is_locked` | BOOLEAN | NOT NULL, DEFAULT FALSE | Verrouillé après brute force |
 | `failed_attempts` | INTEGER | NOT NULL, DEFAULT 0 | Compteur échecs connexion |
 | `last_failed_at` | TIMESTAMP | NULL | Date dernier échec |
@@ -373,7 +373,7 @@ def decode_session_token(token: str) -> dict | None:
 ### 7.3 Rôles et permissions
 
 **4 rôles définis** :
-1. **admin** : Accès complet au dashboard SOC (création utilisateurs, gestion alertes)
+1. **soc** : Accès complet au dashboard SOC (création utilisateurs, gestion alertes)
 2. **directeur** : Accès aux bilans et données sensibles
 3. **comptable** : Accès aux comptes et opérations bancaires
 4. **utilisateur** : Consultation des comptes personnels uniquement
@@ -550,7 +550,7 @@ SQL_INJECTION_PATTERNS = [
 **Détection** :
 ```python
 def check_admin_access(path: str, role: str) -> bool:
-    return path.startswith("/admin") and role != "admin"
+    return path.startswith("/admin") and role != "soc"
 ```
 
 **Réaction automatique** :

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Vider les données{% endblock %}
+{% block title %}Clear Data{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -162,22 +162,20 @@
     <!-- SIDEBAR -->
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
-            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a" href="/soc/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a" href="/soc/"><i class="bi bi-house"></i>Graphes</a>
         </div>
         <div class="sb-grp">
             <div class="sb-grp-label">Surveillance</div>
-            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
-            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
-            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+            <a class="sb-a" href="/soc/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a" href="/soc/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a" href="/soc/users"><i class="bi bi-people"></i>Utilisateurs</a>
         </div>
-        {% if user.role in ['admin', 'directeur'] %}
         <div class="sb-grp">
             <div class="sb-grp-label">Système</div>
-            <a class="sb-a" href="/admin/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs bruts</a>
-            <a class="sb-a active" href="/admin/clear-data"><i class="bi bi-trash"></i>Vider les données</a>
+            <a class="sb-a" href="/soc/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs</a>
+            <a class="sb-a active" href="/soc/clear-data"><i class="bi bi-trash"></i>Clear Data</a>
         </div>
-        {% endif %}
     </nav>
 
     <!-- MAIN -->
@@ -211,16 +209,13 @@
             <!-- Warning box -->
             <div class="warning-box" style="animation: fadeSlideUp 0.35s var(--ease) 0.05s both;">
                 <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                    <i class="bi bi-exclamation-triangle-fill" 
-                       style="color: var(--s-hi); font-size: 1.5rem; flex-shrink: 0;"></i>
                     <div>
                         <h5 style="font-size: 1rem; color: var(--t1); margin-bottom: 0.5rem; font-family: 'Syne', sans-serif;">
                             ⚠️ Attention : Action irréversible
                         </h5>
                         <p style="font-size: 0.85rem; color: var(--t2); line-height: 1.6; margin: 0;">
                             Cette action va <strong>supprimer définitivement</strong> toutes les alertes et tous les événements 
-                            de la base de données. <strong>Cette opération ne peut pas être annulée.</strong>
-                            Assurez-vous de vouloir procéder avant de continuer.
+                            de la base de données.
                         </p>
                     </div>
                 </div>
@@ -256,7 +251,7 @@
                         Vider les alertes et événements
                     </button>
                     <div style="margin-top: 1rem;">
-                        <a href="/admin/" class="cancel-btn">
+                        <a href="/soc/" class="cancel-btn">
                             <i class="bi bi-arrow-left" style="margin-right: 0.4rem;"></i>
                             Retour au tableau de bord
                         </a>
@@ -275,13 +270,13 @@
         </div>
         <h5 class="modal-title">Confirmer la suppression</h5>
         <p class="modal-message">
-            Êtes-vous <strong>absolument certain</strong> de vouloir supprimer toutes les alertes et événements ?
+            Êtes-vous <strong>certain</strong> de vouloir supprimer toutes les alertes et événements ?
             <br><br>
             <span style="color: var(--s-hi);">Cette action est irréversible.</span>
         </p>
         <div class="modal-actions">
             <button type="button" class="cancel-btn" onclick="hideConfirmModal()">Annuler</button>
-            <form method="POST" action="/admin/clear-data" style="display: inline;">
+            <form method="POST" action="/soc/clear-data" style="display: inline;">
                 <button type="submit" class="danger-btn">
                     <i class="bi bi-trash-fill" style="margin-right: 0.5rem;"></i>
                     Oui, tout supprimer

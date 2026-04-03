@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% block title %}Direction Générale — XUD-Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1rem;
+        height: calc(100vh - var(--nav-h) - 120px);
+    }
+
+    .actions-list {
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+    }
+
+    .action-item {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        padding: .75rem .9rem;
+        background: rgba(255, 255, 255, .03);
+        border: 1px solid var(--bdr2);
+        border-radius: 10px;
+        text-decoration: none;
+        transition: all .18s var(--ease);
+    }
+
+    .action-item:hover {
+        background: rgba(255, 255, 255, .06);
+        border-color: var(--bdr);
+    }
+
+    .action-item.primary {
+        background: var(--lime-dim);
+        border-color: var(--lime-b);
+    }
+
+    .action-item.primary:hover {
+        background: rgba(180, 255, 69, .15);
+    }
+
+    .action-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: .88rem;
+    }
+
+    .action-title {
+        font-weight: 700;
+        font-family: 'Syne', sans-serif;
+        font-size: .84rem;
+        color: var(--t1);
+    }
+
+    .action-sub {
+        font-size: .71rem;
+        color: var(--t2);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+    <nav class="xsidebar">
+        <div class="sb-grp">
+            <a class="sb-a active" href="/direction/dashboard"><i class="bi bi-house"></i>Direction</a>
+        </div>
+        <div class="sb-grp">
+            <div class="sb-grp-label">Gestion</div>
+            <a class="sb-a" href="/direction/users"><i class="bi bi-people"></i>Personnel</a>
+            <a class="sb-a" href="/direction/users/new"><i class="bi bi-person-plus"></i>Recruter</a>
+        </div>
+        <div class="sb-grp">
+            <div class="sb-grp-label">Rapports</div>
+            <a class="sb-a" href="/comptabilite/dashboard"><i class="bi bi-credit-card"></i>Comptes</a>
+            <a class="sb-a" href="/direction/export-pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i>Rapport</a>
+        </div>
+    </nav>
+    <main class="xmain" style="display:flex;flex-direction:column;overflow:hidden;">
+
+        <!-- Header compact -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-shrink:0;">
+            <div>
+                <h4 style="font-size:1.1rem;margin-bottom:.1rem;">
+                    <i class="bi bi-command" style="color:var(--lime);margin-right:.45rem;"></i>Console Direction
+                </h4>
+                <p style="font-size:.76rem;color:var(--t2);margin-top:.5rem;">
+                    {{ user.username }}
+                    <span class="u-role u-role-{{ user.role }}" style="margin-left:.4rem;display:inline-flex;">{{
+                        user.role }}</span>
+                </p>
+            </div>
+            <!-- Stats inline -->
+            <div style="display:flex;gap:.7rem;">
+                <div id="idx-stat-total" style="background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:10px;
+                                        padding:.6rem 1rem;text-align:center;min-width:80px;">
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
+                                            color:var(--t1);line-height:1;">{{ stats.total_events }}</div>
+                    <div style="font-size:.67rem;color:var(--t3);margin-top:.2rem;font-weight:600;
+                                            text-transform:uppercase;letter-spacing:.6px;">Événements</div>
+                </div>
+                <div id="idx-stat-alerts" style="background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:10px;
+                                        padding:.6rem 1rem;text-align:center;min-width:80px;">
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
+                                            color:var(--t1);line-height:1;">{{ stats.unresolved_alerts }}</div>
+                    <div style="font-size:.67rem;color:var(--t3);margin-top:.2rem;font-weight:600;
+                                            text-transform:uppercase;letter-spacing:.6px;">Alertes</div>
+                </div>
+                <div id="idx-stat-locked" style="background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:10px;
+                                        padding:.6rem 1rem;text-align:center;min-width:80px;">
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
+                                            color:var(--t1);line-height:1;">{{ stats.locked_accounts }}</div>
+                    <div style="font-size:.67rem;color:var(--t3);margin-top:.2rem;font-weight:600;
+                                            text-transform:uppercase;letter-spacing:.6px;">Verrouillés</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid principal -->
+        <div class="admin-grid" style="flex:1;min-height:0;">
+
+            <!-- Colonne gauche : actions rapides -->
+            <div class="xcard" style="animation:fadeSlideUp .35s var(--ease) both;display:flex;flex-direction:column;">
+                <div class="xcard-hdr">
+                    <span class="xcard-hdr-title">
+                        <i class="bi bi-lightning-fill" style="color:var(--lime);margin-right:.4rem;"></i>Actions
+                        rapides
+                    </span>
+                </div>
+                <div class="xcard-body actions-list" style="flex:1;">
+
+                    <a href="/direction/users/new" class="action-item primary">
+                        <div class="action-icon" style="background:var(--lime);">
+                            <i class="bi bi-person-plus-fill" style="color:var(--t-inv);"></i>
+                        </div>
+                        <div>
+                            <div class="action-title" style="color:var(--lime);">Recruter</div>
+                            <div class="action-sub">Créer un profil utilisateur</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--lime);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+
+                    <a href="/direction/users" class="action-item">
+                        <div class="action-icon" style="background:rgba(37,99,235,.15);">
+                            <i class="bi bi-people-fill" style="color:#60A5FA;"></i>
+                        </div>
+                        <div>
+                            <div class="action-title">Gérer l'effectif</div>
+                            <div class="action-sub">Liste et Radiation du personnel</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+
+                    <a href="/comptabilite/dashboard" class="action-item">
+                        <div class="action-icon" style="background:rgba(180,255,69,.08);">
+                            <i class="bi bi-credit-card-2-front" style="color:var(--lime);"></i>
+                        </div>
+                        <div>
+                            <div class="action-title">Comptes</div>
+                            <div class="action-sub">Consulter l'activité bancaire</div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Colonne droite : graphe alertes -->
+            <div class="xcard"
+                style="animation:fadeSlideUp .4s var(--ease) .1s both;display:flex;flex-direction:column;">
+                <div class="xcard-hdr">
+                    <span class="xcard-hdr-title">
+                        <i class="bi bi-bar-chart-line" style="color:var(--lime);margin-right:.45rem;"></i>
+                        Statistiques des alertes
+                    </span>
+                    <span id="chart-ws-dot" style="width:8px;height:8px;border-radius:50%;
+                          background:#DC2626;display:inline-block;transition:background .3s;"></span>
+                </div>
+                <div class="xcard-body"
+                    style="flex:1;display:flex;flex-direction:column;gap:1rem;padding:.9rem 1.1rem;">
+                    <canvas id="alertsChart" style="flex:1;max-height:280px;"></canvas>
+                    <!-- Légende custom -->
+                    <div style="display:flex;gap:1.4rem;justify-content:center;flex-wrap:wrap;">
+                        {% for level, color in
+                        [('LOW','#16A34A'),('MEDIUM','#D97706'),('HIGH','#DC2626'),('CRITICAL','#7C3AED')] %}
+                        <div style="display:flex;align-items:center;gap:.4rem;">
+                            <div style="width:28px;height:3px;border-radius:2px;background:{{ color }};"></div>
+                            <span
+                                style="font-size:.72rem;font-weight:700;color:var(--t2);font-family:'Syne',sans-serif;">
+                                {{ level }}
+                                <span id="legend-{{ level }}" style="color:var(--t1);margin-left:.2rem;">
+                                    {{ severity_stats.get(level, 0) }}
+                                </span>
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script id="chart-data" type="application/json">{{ chart_data | tojson }}</script>
+<script>
+    const raw = JSON.parse(document.getElementById('chart-data').textContent);
+
+    // Prépare les labels (heures) et datasets par severity
+    const levels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    const colors = {
+        LOW: { border: '#16A34A', bg: 'rgba(22,163,74,.12)' },
+        MEDIUM: { border: '#D97706', bg: 'rgba(217,119,6,.12)' },
+        HIGH: { border: '#DC2626', bg: 'rgba(220,38,38,.12)' },
+        CRITICAL: { border: '#7C3AED', bg: 'rgba(124,58,237,.12)' },
+    };
+
+    const labels = raw.labels;
+    const datasets = levels.map(level => ({
+        label: level,
+        data: raw[level] || [],
+        borderColor: colors[level].border,
+        backgroundColor: colors[level].bg,
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: colors[level].border,
+        tension: 0.4,
+        fill: true,
+    }));
+
+    const chart = new Chart(document.getElementById('alertsChart'), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(11,21,40,.95)',
+                    borderColor: 'rgba(255,255,255,.08)',
+                    borderWidth: 1,
+                    titleFont: { family: 'Syne', weight: '700', size: 12 },
+                    bodyFont: { family: 'Figtree', size: 11 },
+                    padding: 10,
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,.04)' },
+                    ticks: { color: '#3A5070', font: { size: 10, family: 'Figtree' } }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#3A5070', font: { size: 10 } },
+                    grid: { color: 'rgba(255,255,255,.04)' }
+                }
+            }
+        }
+    });
+
+    // Mise à jour via WebSocket optimisée
+    const wsHost = window.location.host;
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProto}//${location.host}/ws/alerts`);
+    const dot = document.getElementById('chart-ws-dot');
+
+    ws.onopen = () => { dot.style.background = '#16A34A'; };
+    ws.onclose = () => { dot.style.background = '#DC2626'; };
+
+    let pendingChartAlerts = [];
+    let chartUpdateScheduled = false;
+
+    function flushChartUpdates() {
+        if (pendingChartAlerts.length === 0) return;
+
+        // Count how many of each level we got in this batch
+        const levelCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
+        pendingChartAlerts.forEach(a => {
+            const rawLvl = a.alert_level;
+            const lvl = typeof rawLvl === 'object' ? rawLvl.value : rawLvl;
+            if (levelCounts[lvl] !== undefined) levelCounts[lvl]++;
+        });
+
+        const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+        // Ajoute un point groupé sur le graphe
+        chart.data.labels.push(now);
+        levels.forEach(l => {
+            const d = chart.data.datasets.find(x => x.label === l);
+            if (d) d.data.push(levelCounts[l] || 0);
+        });
+
+        // Garde un maximum de points
+        if (chart.data.labels.length > 24) {
+            chart.data.labels.shift();
+            chart.data.datasets.forEach(d => d.data.shift());
+        }
+
+        chart.update('active');
+
+        // Met à jour les compteurs de légende
+        levels.forEach(l => {
+            if (levelCounts[l] > 0) {
+                const el = document.getElementById(`legend-${l}`);
+                if (el) el.textContent = parseInt(el.textContent || 0) + levelCounts[l];
+            }
+        });
+
+        pendingChartAlerts = [];
+        chartUpdateScheduled = false;
+    }
+
+    ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        if (msg.type === 'new_alert') {
+            pendingChartAlerts.push(msg.alert);
+            if (!chartUpdateScheduled) {
+                chartUpdateScheduled = true;
+                requestAnimationFrame(flushChartUpdates);
+            }
+            
+            // Update unresolved alerts counter
+            const alertsStat = document.getElementById('idx-stat-alerts');
+            if (alertsStat) {
+                const valDiv = alertsStat.querySelector('div:first-child');
+                if (valDiv) {
+                    const newCount = parseInt(valDiv.textContent || 0) + 1;
+                    valDiv.textContent = newCount;
+                    flashElement(valDiv);
+                }
+            }
+            
+            // Update action item sub-text
+            const alertsSub = document.getElementById('idx-sub-alerts');
+            if (alertsSub) {
+                const current = parseInt(alertsSub.textContent) || 0;
+                alertsSub.textContent = `${current + 1} en attente`;
+            }
+        }
+        
+        if (msg.type === 'new_event') {
+            // Update total events counter
+            const totalStat = document.getElementById('idx-stat-total');
+            if (totalStat) {
+                const valDiv = totalStat.querySelector('div:first-child');
+                if (valDiv) {
+                    const newCount = parseInt(valDiv.textContent || 0) + 1;
+                    valDiv.textContent = newCount;
+                    flashElement(valDiv);
+                }
+            }
+            
+            // Update action item sub-text
+            const eventsSub = document.getElementById('idx-sub-events');
+            if (eventsSub) {
+                const current = parseInt(eventsSub.textContent) || 0;
+                eventsSub.textContent = `${current + 1} événements total`;
+            }
+            
+            // Check if it's a LOGIN_LOCKED event to update locked accounts count
+            const event = msg.event;
+            const eventType = typeof event.event_type === 'object' ? event.event_type.value : event.event_type;
+            if (eventType === 'LOGIN_LOCKED') {
+                const lockedStat = document.getElementById('idx-stat-locked');
+                if (lockedStat) {
+                    const valDiv = lockedStat.querySelector('div:first-child');
+                    if (valDiv) {
+                        const newCount = parseInt(valDiv.textContent || 0) + 1;
+                        valDiv.textContent = newCount;
+                        flashElement(valDiv);
+                    }
+                }
+            }
+        }
+    };
+    
+    function flashElement(el) {
+        el.style.transition = 'color 0.3s ease, transform 0.2s ease';
+        const originalColor = el.style.color;
+        el.style.color = 'var(--lime)';
+        el.style.transform = 'scale(1.15)';
+        setTimeout(() => {
+            el.style.color = originalColor;
+            el.style.transform = 'scale(1)';
+        }, 300);
+    }
+</script>
+{% endblock %}

@@ -12,7 +12,7 @@
 3. [Stack Technologique](#-3-stack-technologique)
 4. [Structure du Projet](#-4-structure-du-projet)
 5. [Modèle de Données](#-5-modèle-de-données)
-6. [Identification et Rôles](#-6-identification-et-rôles)
+6. [Identification et Rôles (RBAC)](#-6-identification-et-rôles-rbac)
 7. [Moteur Événementiel](#-7-moteur-événementiel)
 8. [Règles de Détection SOC](#-8-règles-de-détection-soc)
 9. [Installation & Déploiement](#-9-installation--déploiement)
@@ -23,15 +23,9 @@
 
 ## 🔍 1. Présentation
 
-**XUD-Bank** est une application Web bancaire de démonstration destinée au personnel interne et aux clients. Elle intègre directement un moteur de détection d'intrusion appelé **SecureDataMonitor**. Ce composant agit comme un mini-SOC (Security Operations Center) qui surveille, détecte, et alerte en temps réel toute activité suspecte sur le backend.
+**XUD-Bank** est une application Web bancaire de démonstration destinée au personnel interne et aux clients. Elle intègre directement un moteur de détection d'intrusion appelé **SecureDataMonitor**. 
 
-### ✨ Fonctionnalités Clés
-
-- **UI Premium** : Interface asynchrone moderne (Bootstrap 5, Jinja2, Chart.js) avec des layouts optimisés pour les tableaux de bord interactifs
-- **Authentification asynchrone** : Hachage Bcrypt optimisé fonctionnant hors du thread principal pour éviter tout ralentissement réseau
-- **Moteur événementiel (Pub/Sub)** : Modèle 100% découplé pour une scalabilité optimale
-- **Détection des menaces** : 6 règles de détection (Brute force, exfiltration, SQLi...)
-- **Surveillance Ultra-fluide (WebSocket)** : Tableau de bord supportant des centaines d'événements par seconde sans latence grâce au regroupement d'événements (`requestAnimationFrame`)
+Depuis la dernière refonte architecturale, le projet applique une **Séparation des Tâches (Segregation of Duties)** stricte : l'administration monolithique a été remplacée par des espaces dédiés pour chaque métier (Sécurité, Direction, Comptabilité, Client).
 
 ---
 
@@ -43,7 +37,7 @@ Le projet combine deux design patterns :
 
 ```
 ┌─────────────────────────────────────────────┐
-│  PRÉSENTATION  routers/ + templates/        │  HTTP, vues HTML, WebSocket
+│  PRÉSENTATION  routers/ + templates/        │  HTTP, vues HTML, WebSocket (Espaces RBAC)
 ├─────────────────────────────────────────────┤
 │  MÉTIER        services/auth_service.py     │  Logique bancaire, Threadpool, Bcrypt
 ├─────────────────────────────────────────────┤
@@ -51,20 +45,21 @@ Le projet combine deux design patterns :
 ├─────────────────────────────────────────────┤
 │  PERSISTANCE   models/ + database.py        │  CRUD SQLAlchemy 2.0 (asyncpg)
 └─────────────────────────────────────────────┘
+```
+
 ---
 
 ## 🛠️ 3. Stack Technologique
 
 | Composant | Technologie | Détails |
 |---|---|---|
-| **Backend** | FastAPI (Python 3.11+) | Asynchrone natif |
+| **Backend** | FastAPI (Python 3.11+) | Asynchrone natif, routers segmentés |
 | **Base de données** | PostgreSQL (Railway) | Driver haute performance `asyncpg` |
 | **ORM** | SQLAlchemy 2.0 | Opérations totalement asynchrones |
 | **Mots de passe** | Passlib (Bcrypt = 12) | Exécuté sur *Threadpool* (non-bloquant) |
 | **Sessions** | itsdangerous | Cookies chiffrés et signés sans BDD |
 | **WebSocket** | WebSockets natifs | Optimisation visuelle par Batching (`requestAnimationFrame`) |
-| **Frontend** | HTML5 / Bootstrap 5 / JS | Interfaces dynamiques / Chart.js mis à jour en masse |
-| **Logs** | logging.RotatingFileHandler | Fichiers rotatifs & BDD locale sync |
+| **Frontend** | HTML5 / Vanilla CSS / JS | Interfaces dynamiques / Chart.js / Google Fonts (Syne, Figtree) |
 
 ---
 
@@ -72,446 +67,137 @@ Le projet combine deux design patterns :
 
 ```
 xud-bank/
-├── app/                              # Application Bancaire
-│   ├── main.py                       # Point d'entrée, middlewares de sécurité
+├── app/                              # Application Bancaire (Core)
+│   ├── main.py                       # Point d'entrée, montage des routers & middlewares
 │   ├── database.py                   # Configuration Railway + Asyncpg
-│   ├── models/                       # UUIDPK, Enum (utilisateurs, alertes, etc.)
-│   ├── routers/                      # Routes d'accès (auth, data)
+│   ├── models/                       # Schémas SQLAlchemy (User, BankAccount, Alert...)
+│   ├── routers/                      # Logique Role-Based Access Control
+│   │   ├── auth.py                   # Auth, Sessions, Logout
+│   │   ├── soc.py                    # (/soc) Surveillance & Verrouillage comptes
+│   │   ├── direction.py              # (/direction) Gestion personnel (Hire/Fire)
+│   │   ├── comptabilite.py           # (/comptabilite) Gestion bancaire & création comptes
+│   │   └── client.py                 # (/client) Espace personnel client (Virements)
 │   ├── services/                     # Métier (auth via threadpool)
-│   └── templates/                    # Front public (login, register, data)
-├── secureDataMonitor/                # SOC Moteur de Surveillance
-│   ├── events/                       # Handles & Dispatcher
-│   ├── services/                     # Détection de menaces / Logger
-│   ├── routers/                      # REST API Admin & WebSockets
-│   ├── templates/admin/              # Front SOC (dashboard, alerts, events)
+│   └── templates/                    # Front segmenté par rôle (soc/, direction/, etc.)
+├── secureDataMonitor/                # SOC Engine (Composant de Surveillance)
+│   ├── events/                       # Handlers & Dispatcher d'événements
+│   ├── services/                     # Détection de menaces / Logger système
+│   ├── routers/                      # REST API Stats & WebSockets
 │   └── static/js/ws_alerts.js        # Script de batching haute performance
-├── logs/                             # Fichiers de log locaux
-└── init_db.sql / requirements.txt    # Scripts SQL et dépendances
+├── logs/                             # Fichiers de log locaux (security.log)
+└── init_db.sql / seed_data.sql       # Initialisation & Données de démo
 ```
 
 ---
 
 ## 💾 5. Modèle de Données
 
-Le modèle repose sur PostgreSQL (avec Railway) :
+Le modèle repose sur PostgreSQL :
 
-- **`users`** : UUID, identifiants, mot de passe hashé, rôles et gestion de verrouillage (`is_locked`)
-- **`bank_accounts`** : Données cibles (soldes, niveau de classification "secret" etc.)
-- **`security_events`** : Trace indélébile en base des actions (avec typage Enum)
-- **`alerts`** : Alertes levées par le SOC, liées aux `security_events` déclencheurs
-- **`login_attempts`** : Historique granulaire pour la prévention du brute-force (Règle 1) et de l'énumération (Règle 5)
-
-*(Voir le schéma complet dans `init_db.sql`)*
+- **`users`** : UUID, identifiants, roles (`soc`, `directeur`, `comptable`, `utilisateur`), status de verrouillage.
+- **`bank_accounts`** : Comptes bancaires avec classification (`public`, `confidentiel`, `secret`).
+- **`security_events`** : Journal indélébile des incidents de sécurité détectés.
+- **`alerts`** : Notifications levées par le moteur pour les administrateurs SOC.
+- **`login_attempts`** : Tracking des tentatives pour la prévention brute-force.
 
 ---
 
-## 👥 6. Identification et Rôles
+## 👥 6. Identification et Rôles (RBAC)
 
-Voici les identifiants de test. La navigation et les accès sont fortement restreints selon le rôle validé durant la phase de connexion.
+L'inscription publique est **désactivée**. Les comptes sont créés exclusivement par la **Direction**.
 
-| Username | Mot de passe | Rôle | Accès & Privilèges |
+| Username | Role | Espace Dédié | Privilèges & Responsabilités |
 |---|---|---|---|
-| **`soc`** | `Soc@1234` | **admin (SOC)** | Tableau de gestion des Alertes |
-| **`hor`** | `Hor@1234` | **comptable** | Accès aux bilans |
-| **`directeur`** | `Directeur@1234` | **directeur** | Accès directoire |
-| **`dupont`** | `Dupont@1234` | **utilisateur (client)** | Consultation comptes personnels |
-| **`pierre`** | `Pierre@1234` | **utilisateur (client)** | Consultation comptes personnels |
+| **`soc`** | `soc` | `/soc/*` | Surveillance temps réel, **Verrouillage des comptes**, Logs bruts. |
+| **`directeur`** | `directeur` | `/direction/*` | **Recrutement personnel**, Radiation (suppression), Audit global. |
+| **`hor`** | `comptable` | `/comptabilite/*` | **Création de comptes bancaires**, Gestion des virements. |
+| **`dupont`** | `utilisateur` | `/client/*` | Consultation soldes, **Virements personnels**, Historique. |
 
 ---
 
 ## ⚡ 7. Moteur Événementiel
 
-Le cœur de XUD-Bank repose sur des événements publiés par les requêtes (ex: *tentative de connexion ratée*) et traités en arrière-plan :
+Le système utilise `Dispatcher` asynchrone pour traiter les menaces sans ralentir l'utilisateur :
 
 ```python
-await dispatcher.emit("rate_limit", {
-    "ip": "192.168.1.1",
-    "username": "dupont",
-    "count": 50
+# Exemple de levée d'incident
+await dispatcher.emit("mass_data_access", {
+    "ip": "102.85.x.x",
+    "username": "suspect_user",
+    "count": 45
 })
 ```
-
-- **Non-bloquant** : Pas de blocage du Thread Serveur. L'utilisateur reçoit sa réponse instantanément, pendant que les modules d'analyse se lancent en parallèle.
 
 ---
 
 ## 🚨 8. Règles de Détection SOC
 
-Le module Monitor écoute activement les évènements pour bloquer le trafic :
+Le moteur Monitor écoute et réagit selon les politiques suivantes :
 
 | Règle | Description | Déclencheur | Réaction | Alerte |
 |---|---|---|---|---|
-| **Règle 1** | Brute Force | 3 échecs sur un compte en < 2min | Verrouillage du compte (`is_locked`) | **MEDIUM** |
-| **Règle 2** | Injection SQL | Patterns suspects: `' OR 1=1` | Rejet 400 immédiat | **HIGH** |
-| **Règle 3** | Escalade de privilège | Requête `/admin/*` par un *client* | Révocation avec 403 | **HIGH** |
-| **Règle 4** | Exfiltration | >20 requêtes de data en 1min | Flag de suspicion Massive | **CRITICAL** |
-| **Règle 5** | Énumération | Une IP essaie différents pseudos | Fichage de l'IP | **MEDIUM** |
-| **Règle 6** | Horaires atypiques | Connexion entre 20h00 et 07h00 | Inscription silencieuse | **LOW** |
+| **Règle 1** | Brute Force | 3 échecs en < 2min | Verrouillage automatique du compte | **MEDIUM** |
+| **Règle 2** | Injection SQL | Patterns `' OR 1=1`, `--`, etc | Rejet 400 immédiat + Log Payload | **HIGH** |
+| **Règle 3** | Accès Illégitime | Client tentant `/soc/*` ou `/direction/*` | Permission Denied (403) | **HIGH** |
+| **Règle 4** | Exfiltration | >20 accès aux données en 1min | Signalement suspicion exfiltration | **CRITICAL** |
+| **Règle 5** | Énumération | 3 usernames différents depuis une IP | Fichage et surveillance de l'IP | **MEDIUM** |
+| **Règle 6** | Off-Hours | Connexion entre 20h00 et 07h00 | Inscription discrète de l'événement | **LOW** |
 
 ---
 
 ## 🚀 9. Installation & Déploiement
 
-### Prérequis
-
-- Python 3.11+
-- Base de données PostgreSQL fraîche (idéalement hébergée via Railway)
+### Initialisation
 
 ```bash
-# 1. Cloner le repository
-git clone git@github.com:whitexudan15/xud-bank.git
-cd xud-bank
-
-# 2. Préparer l'environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-.\venv\Scripts\activate   # Windows
-
-# 3. Installer les dépendances
+# 1. Installer les dépendances
 pip install -r requirements.txt
 
-# 4. Configurer les variables d'environnement
-cp .env.example .env
-# Éditer .env avec DATABASE_URL (asyncpg) et SECRET_KEY
+# 2. Configurer l'environnement (.env)
+# DATABASE_URL=postgresql+asyncpg://user:pass@host:port/db
+# SECRET_KEY=cle_secrete_longue
 
-# 5. Initialiser la base de données
+# 3. Initialiser la structure et les rôles (Remise à zéro complète)
 psql $DATABASE_URL < init_db.sql
 psql $DATABASE_URL < seed_data.sql
 
-# 6. Lancer l'application
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# 4. Lancer le serveur
+uvicorn app.main:app --reload
 ```
-
-L'application est maintenant accessible sur `https://xud-bank-production.up.railway.app`.
 
 ---
 
 ## 📝 10. Journalisation
 
-La sécurité s'accompagne toujours d'un bon logging :
-
-1. **Fichiers Locaux** (`logs/security.log`) : Fichiers rotatifs limités à 5MB avec rotation de 3 backups. Évite la saturation du disque.
-2. **Dashboard Temps Réel WebSocket** : Affichage graphique des détections sans réactualisation (flux réseau optimisé).
-3. **Persistance en base de données** : Tables `security_events` et `alerts`.
+La sécurité s'accompagne d'une visibilité totale :
+1. **Fichiers Locaux** : `logs/security.log` pour les analyses judiciaires.
+2. **Dashboard Temps Réel** : `/soc/dashboard` via WebSockets (Regroupement `requestAnimationFrame`).
+3. **Persistance Gérée** : Historique indélébile dans `security_events`.
 
 ---
 
 ## 🧪 11. Tests des Triggers d'Événements
 
-Cette section détaille comment tester chaque règle de détection et déclencher manuellement les événements correspondants.
-
-### Test 1 : Brute Force Login (Règle 1)
-
-**Objectif** : Déclencher le verrouillage d'un compte après 3 échecs consécutifs.
-
-**Procédure** :
+### Test : Escalade de Privilège (Règle 3)
+**Objectif** : Vérifier que les rôles sont étanches.
 ```bash
-# Effectuer 3 tentatives de connexion échouées en moins de 2 minutes
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=admin@xud-bank.com&password=WrongPassword1" \
-  -c cookies.txt
+# Se connecter en tant que client (dupont)
+curl -X POST http://localhost:8000/auth/login -d "email=dupont@mail.com&password=Dupont@1234" -c cookies.txt
 
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=admin@xud-bank.com&password=WrongPassword2" \
-  -c cookies.txt
-
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=admin@xud-bank.com&password=WrongPassword3" \
-  -c cookies.txt
-
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=admin@xud-bank.com&password=WrongPassword4" \
-  -c cookies.txt
+# Tenter d'accéder à la console de verrouillage SOC
+curl http://localhost:8000/soc/users -b cookies.txt
 ```
+**Résultat attendu** : 403 Forbidden + Alerte HIGH dans `/soc/dashboard`.
 
-**Résultat attendu** :
-- ✅ Compte `admin` verrouillé (`is_locked = TRUE`)
-- ✅ Événement `LOGIN_LOCKED` créé (severity: MEDIUM)
-- ✅ Alerte MEDIUM générée
-- ✅ Notification WebSocket envoyée au dashboard
-
-**Vérification SQL** :
-```sql
-SELECT is_locked FROM users WHERE username = 'admin';
--- Doit retourner TRUE
-
-SELECT * FROM security_events 
-WHERE event_type = 'LOGIN_LOCKED' 
-ORDER BY timestamp DESC LIMIT 1;
-
-SELECT * FROM alerts 
-WHERE alert_level = 'MEDIUM' 
-ORDER BY timestamp DESC LIMIT 1;
-```
-
----
-
-### Test 2 : Injection SQL (Règle 2)
-
-**Objectif** : Détecter et bloquer une tentative d'injection SQL.
-
-**Procédure** :
+### Test : Verrouillage SOC (Règle 1)
+**Objectif** : Simuler une attaque brute-force.
 ```bash
-# Tenter une injection SQL dans le formulaire de login
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=' OR 1=1 --&password=test" \
-  -c cookies.txt
-
-# Ou via l'URL
-curl "https://xud-bank-production.up.railway.app/data/accounts?id=1' OR '1'='1"
-```
-
-**Résultat attendu** :
-- ✅ Requête rejetée avec erreur 400
-- ✅ Événement `SQL_INJECTION` créé (severity: HIGH)
-- ✅ Alerte HIGH générée
-- ✅ Payload enregistré dans les logs
-
-**Vérification SQL** :
-```sql
-SELECT * FROM security_events 
-WHERE event_type = 'SQL_INJECTION' 
-ORDER BY timestamp DESC LIMIT 1;
-
-SELECT * FROM alerts 
-WHERE alert_level = 'HIGH' 
-ORDER BY timestamp DESC LIMIT 1;
-```
-
----
-
-### Test 3 : Escalade de Privilège (Règle 3)
-
-**Objectif** : Tenter d'accéder à une zone admin avec un rôle non autorisé.
-
-**Procédure** :
-```bash
-# Se connecter avec un compte utilisateur standard
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=pierre@mail.com&password=Pierre@1234" \
-  -c cookies.txt
-
-# Tenter d'accéder au dashboard admin
-curl https://xud-bank-production.up.railway.app/admin/dashboard \
-  -b cookies.txt
-```
-
-**Résultat attendu** :
-- ✅ Accès refusé (403 Forbidden)
-- ✅ Événement `UNAUTHORIZED_ACCESS` créé (severity: HIGH)
-- ✅ Alerte HIGH générée
-- ✅ Redirection vers page d'erreur
-
-**Vérification SQL** :
-```sql
-SELECT * FROM security_events 
-WHERE event_type = 'UNAUTHORIZED_ACCESS' 
-  AND username = 'dupont'
-ORDER BY timestamp DESC LIMIT 1;
-```
-
----
-
-### Test 4 : Exfiltration Massive (Règle 4)
-
-**Objectif** : Déclencher l'alerte critique après plus de 20 accès aux données en 1 minute.
-
-**Procédure** :
-```bash
-# Se connecter avec un compte utilisateur
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=hor@xud-bank.com&password=Hor@1234" \
-  -c cookies.txt
-
-# Effectuer 25 requêtes rapides vers les données sensibles
-for i in {1..22}; do
-  curl https://xud-bank-production.up.railway.app/data/accounts \
-    -b cookies.txt &
+for i in {1..4}; do
+  curl -X POST http://localhost:8000/auth/login -d "email=directeur@xud-bank.com&password=FauxPassword"
 done
-wait
 ```
-
-**Résultat attendu** :
-- ✅ Alerte CRITICAL générée après le 20ème accès
-- ✅ Événement `MASS_DATA_ACCESS` créé (severity: CRITICAL)
-- ✅ Notification immédiate au SOC
-- ✅ Utilisateur flaggé comme suspect
-
-**Vérification SQL** :
-```sql
-SELECT * FROM security_events 
-WHERE severity = 'CRITICAL' 
-ORDER BY timestamp DESC LIMIT 1;
-
-SELECT * FROM alerts 
-WHERE alert_level = 'CRITICAL' 
-ORDER BY timestamp DESC LIMIT 1;
-```
+**Résultat attendu** : Compte directeur devient `is_locked = TRUE` après 3 essais. Le SOC peut alors le déverrouiller sur `/soc/users`.
 
 ---
 
-### Test 5 : Énumération d'Utilisateurs (Règle 5)
-
-**Objectif** : Détecter une IP testant plusieurs noms d'utilisateurs différents.
-
-**Procédure** :
-```bash
-# Depuis la même IP, tenter 3 usernames différents en moins de 5 minutes
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=admin@xud-bank.com&password=wrong" \
-  -c cookies.txt
-
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=hor@xud-bank.com&password=wrong" \
-  -c cookies.txt
-
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=directeur@xud-bank.com&password=wrong" \
-  -c cookies.txt
-```
-
-**Résultat attendu** :
-- ✅ Événement `ENUM_ATTEMPT` créé (severity: MEDIUM)
-- ✅ Alerte MEDIUM générée
-- ✅ IP enregistrée comme suspecte
-- ✅ Compteur d'IP distinctes
-
-**Vérification SQL** :
-```sql
-SELECT * FROM security_events 
-WHERE event_type = 'ENUM_ATTEMPT' 
-ORDER BY timestamp DESC LIMIT 1;
-
-SELECT ip_address, COUNT(DISTINCT username_tried) as unique_users
-FROM login_attempts
-WHERE timestamp > NOW() - INTERVAL '5 minutes'
-GROUP BY ip_address
-HAVING COUNT(DISTINCT username_tried) >= 3;
-```
-
----
-
-### Test 6 : Accès Hors Horaires (Règle 6)
-
-**Objectif** : Vérifier la détection des connexions en dehors des heures de bureau (20h-07h UTC).
-
-**Procédure** :
-```bash
-# Modifier temporairement ALLOWED_HOURS_START/END dans .env
-# Ou tester tard le soir / tôt le matin
-
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=pierre@mail.com&password=Pierre@1234" \
-  -c cookies.txt
-```
-
-**Résultat attendu** :
-- ✅ Connexion réussie mais journalisée
-- ✅ Événement `OFF_HOURS_ACCESS` créé (severity: LOW)
-- ✅ Alerte LOW générée
-- ✅ Heure de connexion enregistrée
-
-**Vérification SQL** :
-```sql
-SELECT * FROM security_events 
-WHERE event_type = 'OFF_HOURS_ACCESS' 
-ORDER BY timestamp DESC LIMIT 1;
-
-SELECT EXTRACT(HOUR FROM timestamp) as hour, username
-FROM security_events
-WHERE event_type = 'OFF_HOURS_ACCESS'
-ORDER BY timestamp DESC;
-```
-
----
-
-### Test 7 : URL Suspecte / Path Traversal
-
-**Objectif** : Détecter les tentatives d'accès à des fichiers sensibles.
-
-**Procédure** :
-```bash
-# Tenter d'accéder à des fichiers système
-curl "https://xud-bank-production.up.railway.app/../../../etc/passwd"
-curl "https://xud-bank-production.up.railway.app/.env"
-curl "https://xud-bank-production.up.railway.app/admin/../config.py"
-```
-
-**Résultat attendu** :
-- ✅ Requête bloquée (403 Forbidden)
-- ✅ Événement `SUSPICIOUS_URL` créé (severity: HIGH)
-- ✅ Alerte HIGH générée
-- ✅ URL suspecte enregistrée
-
-**Vérification SQL** :
-```sql
-SELECT * FROM security_events 
-WHERE event_type = 'SUSPICIOUS_URL' 
-ORDER BY timestamp DESC LIMIT 1;
-```
-
----
-
-### Test 8 : Rate Limiting
-
-**Objectif** : Déclencher la protection contre le flood de requêtes.
-
-**Procédure** :
-```bash
-# Se connecter avec un identifiant qu'a les droits d'accès /data/accounts
-curl -X POST https://xud-bank-production.up.railway.app/auth/login \
-  -d "email=pierre@mail.com&password=Pierre@1234" \
-  -c cookies.txt
-
-# Envoyer 50+ requêtes en moins d'une minute depuis la même IP
-for i in {1..60}; do
-  curl https://xud-bank-production.up.railway.app/data/accounts \
-  -b cookies.txt
-done
-wait
-```
-
-**Résultat attendu** :
-- ✅ Événement `RATE_LIMIT` créé (severity: MEDIUM)
-- ✅ Alerte MEDIUM générée
-- ✅ IP temporairement limitée
-- ✅ Fenêtre temporelle enregistrée
-
-**Vérification SQL** :
-```sql
-SELECT * FROM security_events 
-WHERE event_type = 'RATE_LIMIT' 
-ORDER BY timestamp DESC LIMIT 1;
-```
-
----
-
-## 📊 Monitoring des Tests
-
-Pour suivre tous les événements en temps réel :
-
-```sql
--- Voir les 10 derniers événements
-SELECT event_type, severity, username, ip_address, description, timestamp
-FROM security_events
-ORDER BY timestamp DESC
-LIMIT 10;
-
--- Voir les alertes non résolues
-SELECT alert_level, message, timestamp
-FROM alerts
-WHERE resolved = FALSE
-ORDER BY timestamp DESC;
-
--- Statistiques par type d'événement
-SELECT event_type, COUNT(*) as count
-FROM security_events
-WHERE timestamp > NOW() - INTERVAL '24 hours'
-GROUP BY event_type
-ORDER BY count DESC;
-```
-
----
-
-> *Architecture réalisée par le département FAST-LPSIC M2 durant la session 2025-2026. L'outil reflète les standards défensifs Asynchrones modernes (Event-Loops, Threadpool GPU offloading, API sécurisée).*
+> *Projet réalisé par l'équipe FAST-LPSIC M2 durant la session 2025-2026. L'architecture respecte les standards de défense en profondeur (RBAC segmenté, Dispatcher asynchrone, Heartbeat WebSocket).*

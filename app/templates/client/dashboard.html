@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Mon Espace Client — Xud-Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .acc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .acc-card {
+        background: var(--bg-glass);
+        border: 1px solid var(--bdr2);
+        border-radius: 20px;
+        padding: 1.8rem;
+        backdrop-filter: blur(12px);
+        box-shadow: var(--sh-card);
+        position: relative;
+        overflow: hidden;
+        transition: all .25s var(--ease);
+        animation: fadeSlideUp .5s var(--ease) both;
+    }
+
+    .acc-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--lime-b);
+        box-shadow: 0 10px 40px rgba(180, 255, 69, .08);
+    }
+
+    .acc-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle at top right, rgba(180, 255, 69, .05), transparent);
+        border-radius: 0 0 0 100%;
+        pointer-events: none;
+    }
+
+    .solde-big {
+        font-family: 'Syne', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--lime);
+        letter-spacing: -0.5px;
+        margin: .8rem 0;
+    }
+
+    .acc-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .8rem;
+        margin-top: 1.5rem;
+    }
+
+    .btn-action {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        padding: .7rem;
+        border-radius: 12px;
+        font-size: .85rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all .2s;
+    }
+
+    .btn-adventure {
+        background: var(--bg-glass);
+        border: 1px solid var(--bdr2);
+        color: var(--t2);
+    }
+
+    .btn-adventure:hover {
+        border-color: var(--lime-b);
+        color: var(--lime);
+        background: var(--lime-dim);
+    }
+
+    .btn-virement {
+        background: var(--lime);
+        color: var(--t-inv);
+        box-shadow: 0 6px 20px rgba(180, 255, 69, .25);
+    }
+
+    .btn-virement:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(180, 255, 69, .35);
+        color: var(--t-inv);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+    <nav class="xsidebar">
+        <div class="sb-grp">
+            <a class="sb-a active" href="/client/dashboard"><i class="bi bi-house"></i>Accueil Client</a>
+        </div>
+    </nav>
+
+    <main class="xmain">
+        <div class="pg-hdr">
+            <div>
+                <h4><i class="bi bi-wallet-fill" style="color:var(--lime);margin-right:.84rem;"></i>Mon Espace Client</h4>
+                <p class="sub">Bienvenue, <strong style="color:var(--t1);">{{ user.username }}</strong>. Voici l'état de vos finances.</p>
+            </div>
+        </div>
+
+        <div class="acc-grid">
+            {% for acc in accounts %}
+            <div class="acc-card">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;">
+                    <div>
+                        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:var(--t2);letter-spacing:.3px;">{{ acc.id_compte }}</div>
+                        <div style="font-size:1.1rem;font-weight:800;color:var(--t1);margin-top:.1rem;">{{ acc.titulaire }}</div>
+                    </div>
+                    <div style="width:40px;height:40px;background:rgba(180, 255, 69, .08);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-safe2-fill" style="color:var(--lime);font-size:1.2rem;"></i>
+                    </div>
+                </div>
+
+                <div style="border-top:1px solid var(--bdr2);padding-top:1.5rem;">
+                    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--t3);letter-spacing:1px;font-family:'Syne',sans-serif;">Solde Actuel</div>
+                    <div class="solde-big">{{ "%.2f"|format(acc.solde) }} €</div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Add account Placeholder -->
+            <div class="acc-card" style="border:2px dashed var(--bdr2);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0.6;cursor:not-allowed;box-shadow:none;">
+                <i class="bi bi-plus-circle" style="font-size:2.5rem;color:var(--t3);margin-bottom:1rem;"></i>
+                <div style="font-weight:700;color:var(--t3);">Nouveau Projet ?</div>
+                <div style="font-size:.75rem;color:var(--t3);text-align:center;margin-top:.4rem;">Contactez votre conseiller pour ouvrir un nouveau compte.</div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

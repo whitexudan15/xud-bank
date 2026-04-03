@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Gestion Bancaire — Comptabilité{% endblock %}
+
+{% block extra_css %}
+<style>
+    .acc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .acc-card {
+        background: var(--bg-glass);
+        border: 1px solid var(--bdr2);
+        border-radius: 14px;
+        padding: 1.4rem;
+        backdrop-filter: blur(12px);
+        box-shadow: var(--sh-card);
+        position: relative;
+        overflow: hidden;
+        transition: all .22s var(--ease);
+        animation: fadeSlideUp .4s var(--ease) both;
+    }
+
+    .acc-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(180, 255, 69, .2);
+        box-shadow: var(--sh-card), 0 0 28px rgba(180, 255, 69, .07);
+    }
+
+    .acc-card.classification-public { border-left: 3px solid var(--s-low); }
+    .acc-card.classification-confidentiel { border-left: 3px solid var(--s-med); }
+    .acc-card.classification-secret { border-left: 3px solid var(--s-hi); }
+
+    .acc-detail-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        width: 100%;
+        margin-top: 1rem;
+        padding: .55rem;
+        border-radius: 9px;
+        border: 1px solid var(--bdr2);
+        background: transparent;
+        color: var(--t2);
+        font-size: .8rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all .18s var(--ease);
+        cursor: pointer;
+    }
+
+    .acc-detail-btn:hover {
+        border-color: var(--lime-b);
+        color: var(--lime);
+        background: var(--lime-dim);
+    }
+
+    .hidden { display: none; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+    <nav class="xsidebar">
+        <div class="sb-grp">
+            <a class="sb-a active" href="/comptabilite/dashboard"><i class="bi bi-house"></i>Accueil Comptabilité</a>
+        </div>
+        <div class="sb-grp">
+            <div class="sb-grp-label">Rapports</div>
+            <a class="sb-a" href="/comptabilite/export-pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i>Générer Rapport PDF</a>
+        </div>
+    </nav>
+
+    <main class="xmain">
+        <div class="pg-hdr">
+            <div>
+                <h4><i class="bi bi-safe" style="color:var(--lime);margin-right:.5rem;"></i>Espace Comptabilité</h4>
+                <p class="sub">Gestion et création des comptes clients (Hors Secret)</p>
+            </div>
+        </div>
+
+        <!-- Create Account Form -->
+        <div class="xcard" style="margin-bottom:1.5rem;">
+            <div class="xcard-hdr" style="cursor:pointer;" onclick="document.getElementById('createForm').classList.toggle('hidden')">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                    <i class="bi bi-plus-circle-fill" style="color:var(--lime);"></i>
+                    <span style="font-weight:700;">Nouveau compte bancaire</span>
+                </div>
+            </div>
+            <div class="xcard-body hidden" id="createForm">
+                <form action="/comptabilite/accounts/create" method="post">
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
+                        <div class="xfield">
+                            <label>Numéro de compte</label>
+                            <input type="text" name="id_compte" class="xinput" placeholder="FR76..." required>
+                        </div>
+                        <div class="xfield">
+                            <label>Titulaire</label>
+                            <input type="text" name="titulaire" class="xinput" placeholder="Nom complet" required>
+                        </div>
+                        <div class="xfield">
+                            <label>Solde Initial (€)</label>
+                            <input type="number" step="0.01" name="solde" class="xinput" value="0.00" required>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="xfield">
+                            <label>Classification</label>
+                            <select name="classification" class="xinput xselect">
+                                <option value="public">Public</option>
+                                <option value="confidentiel" selected>Confidentiel</option>
+                            </select>
+                        </div>
+                        <div class="xfield">
+                            <label>Propriétaire (Utilisateur)</label>
+                            <select name="owner_username" class="xinput xselect" required>
+                                {% for u in users_list %}
+                                <option value="{{ u.username }}">{{ u.username }} ({{ u.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top:1.2rem;text-align:right;">
+                        <button type="submit" class="btn-lime">Créer le compte</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Accounts Grid -->
+        <div class="acc-grid">
+            {% for acc in accounts %}
+            <div class="acc-card classification-{{ acc.classification }}">
+                <div style="display:flex;justify-content:space-between;margin-bottom:1rem;">
+                    <div>
+                        <span class="bdg bdg-{{ acc.classification }}">{{ acc.classification|upper }}</span>
+                        <div style="font-weight:700;margin-top:.5rem;">{{ acc.titulaire }}</div>
+                        <div style="font-size:.7rem;color:var(--t3);font-family:monospace;">{{ acc.id_compte }}</div>
+                    </div>
+                    <i class="bi bi-bank2" style="color:var(--lime);font-size:1.2rem;"></i>
+                </div>
+                <div style="border-top:1px solid var(--bdr2);padding-top:.8rem;">
+                    <div style="font-size:.65rem;color:var(--t3);text-transform:uppercase;">Solde</div>
+                    <div style="font-size:1.3rem;font-weight:800;color:var(--lime);">{{ "%.2f"|format(acc.solde) }} €</div>
+                </div>
+                <a href="#" class="acc-detail-btn"><i class="bi bi-search"></i> Détails / Historique</a>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+{% endblock %}

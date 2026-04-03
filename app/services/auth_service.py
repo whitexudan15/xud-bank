@@ -117,7 +117,7 @@ async def create_user(
 
 
 async def unlock_account(db: AsyncSession, id: uuid.UUID) -> User | None:
-    """Déverrouille un compte (admin uniquement)."""
+    """Déverrouille un compte (SOC uniquement)."""
     user = await get_user_by_id(db, id)
     if user:
         user.is_locked = False
@@ -221,11 +221,11 @@ def require_login(request: Request) -> dict:
 def require_role(*roles: str):
     """
     Dependency FastAPI : vérifie le rôle de l'utilisateur connecté.
-    Usage : Depends(require_role("admin", "directeur"))
+    Usage : Depends(require_role("soc", "directeur"))
 
     Exemple :
         @router.get("/admin/")
-        async def admin_page(user=Depends(require_role("admin"))):
+        async def admin_page(user=Depends(require_role("soc"))):
             ...
     
     Redirige vers /auth/login si non authentifié ou session expirée.

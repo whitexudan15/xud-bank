@@ -4,12 +4,25 @@
 -- Université de Kara – FAST-LPSIC S6 | 2025-2026
 -- ============================================================
 
+-- ── Nettoyage (Suppression des tables et types existants) ──────
+DROP TABLE IF EXISTS alerts CASCADE;
+DROP TABLE IF EXISTS security_events CASCADE;
+DROP TABLE IF EXISTS login_attempts CASCADE;
+DROP TABLE IF EXISTS bank_accounts CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+DROP TYPE IF EXISTS event_status CASCADE;
+DROP TYPE IF EXISTS severity_level CASCADE;
+DROP TYPE IF EXISTS event_type CASCADE;
+DROP TYPE IF EXISTS account_classification CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
 -- ── Extensions ───────────────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";  -- gen_random_uuid()
 
 -- ── ENUMs ────────────────────────────────────────────────────
 
-CREATE TYPE user_role AS ENUM ('admin', 'directeur', 'comptable', 'utilisateur');
+CREATE TYPE user_role AS ENUM ('soc', 'directeur', 'comptable', 'utilisateur');
 
 CREATE TYPE account_classification AS ENUM ('public', 'confidentiel', 'secret');
 

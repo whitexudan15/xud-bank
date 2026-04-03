@@ -9,7 +9,7 @@ import asyncio
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.templates_config import templates
+from app.config import templates
 from app.database import get_db
 from app.config import get_settings
 from app.services.auth_service import (
@@ -54,10 +54,13 @@ async def login_page(request: Request):
         data = decode_session_token(token)
         if data:
             # Session valide, rediriger selon le rôle
-            if data["role"] == "admin":
-                return RedirectResponse(url="/admin/dashboard", status_code=302)
-            else:
-                return RedirectResponse(url="/data/accounts", status_code=302)
+            role_redirects = {
+                "soc": "/soc/dashboard",
+                "directeur": "/direction/dashboard",
+                "comptable": "/comptabilite/dashboard",
+                "utilisateur": "/client/dashboard"
+            }
+            return RedirectResponse(url=role_redirects.get(data["role"], "/auth/login"), status_code=302)
         # Session invalide ou expirée, afficher la page de login
     return templates.TemplateResponse("login.html", {"request": request})
 
@@ -115,7 +118,13 @@ async def login(
         }))
 
         token = create_session_token(user)
-        redirect_url = "/admin/dashboard" if user.role.value == "admin" else "/data/accounts"
+        role_redirects = {
+            "soc": "/soc/dashboard",
+            "directeur": "/direction/dashboard",
+            "comptable": "/comptabilite/dashboard",
+            "utilisateur": "/client/dashboard"
+        }
+        redirect_url = role_redirects.get(user.role.value, "/auth/login")
         response = RedirectResponse(url=redirect_url, status_code=302)
         response.set_cookie(
             key=settings.SESSION_COOKIE_NAME,
@@ -165,68 +174,6 @@ async def logout(request: Request):
     return response
 
 
-# ════════════════════════════════════════════════════════════
-# GET /auth/register
-# ════════════════════════════════════════════════════════════
-
-@router.get("/register", response_class=HTMLResponse)
-async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
-
-
-# ════════════════════════════════════════════════════════════
-# POST /auth/register
-# ════════════════════════════════════════════════════════════
-
-@router.post("/register", response_class=HTMLResponse)
-async def register(
-    request: Request,
-    username: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
-    db: AsyncSession = Depends(get_db),
-):
-    ip = request.client.host
-
-    # ── Détection SQL injection (validation centralisée) ──────
-    is_violation, field, value = validate_inputs({
-        "username": username, "email": email, "password": password
-    })
-    if is_violation:
-        asyncio.create_task(dispatcher.emit("sql_injection", {
-            "ip": ip, "username": username, "field": field, "payload": value,
-        }))
-        return templates.TemplateResponse(
-            "register.html",
-            {"request": request, "error": "Données invalides."},
-            status_code=400,
-        )
-
-    try:
-        user = await create_user(db, username=username, email=email, password=password)
-        await db.commit()
-        log.info(f"Nouveau compte créé : {username} depuis {ip}")
-        return RedirectResponse(url="/auth/login?registered=1", status_code=302)
-
-    except Exception as e:
-        await db.rollback()
-        error_str = str(e).lower()
-        log.error(f"Erreur création compte '{username}' : {type(e).__name__}: {e}")
-
-        if "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
-            return templates.TemplateResponse(
-                "register.html",
-                {"request": request, "error": "Ce nom d'utilisateur ou email est déjà pris."},
-                status_code=400,
-            )
-        if "network" in error_str or "unreachable" in error_str or "connect" in error_str or "timeout" in error_str:
-            return templates.TemplateResponse(
-                "register.html",
-                {"request": request, "error": "Service temporairement indisponible. Réessayez dans quelques instants."},
-                status_code=503,
-            )
-        return templates.TemplateResponse(
-            "register.html",
-            {"request": request, "error": "Une erreur est survenue. Veuillez réessayer."},
-            status_code=500,
-        )
+# Inscription publique désactivée (Action réservée à la Direction)
+# @router.get("/register", response_class=HTMLResponse)
+# ... etc

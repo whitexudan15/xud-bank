@@ -1,6 +1,6 @@
 # ============================================================
-# XUD-BANK — secureDataMonitor/routers/admin.py
-# Routes du tableau de bord sécurité (SOC / Admin)
+# XUD-BANK — app/routers/soc.py
+# Routes du tableau de bord sécurité (SOC)
 # Université de Kara – FAST-LPSIC S6 | 2025-2026
 # ============================================================
 from __future__ import annotations
@@ -26,7 +26,7 @@ from secureDataMonitor.services.logger import resolve_alert, close_event
 settings = get_settings()
 log = logging.getLogger("xud_bank.router.admin")
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/soc", tags=["soc"])
 
 # ════════════════════════════════════════════════════════════
 # CACHE — Dashboard stats avec TTL de 5 secondes
@@ -130,7 +130,7 @@ async def _require_admin_or_analyst(request: Request, db: AsyncSession) -> dict:
 async def admin_index(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
     """
     Vue principale admin/SOC :
@@ -214,7 +214,7 @@ async def admin_index(
     )
     alert_severity_stats = {r.alert_level.value: r.count for r in alert_severity_result.all()}
 
-    return templates.TemplateResponse("admin/index.html", {
+    return templates.TemplateResponse("soc/index.html", {
         "request": request,
         "user": user_data,
         "stats": stats,
@@ -232,7 +232,7 @@ async def admin_index(
 async def dashboard(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
     """
     Tableau de bord sécurité avec WebSocket pour alertes temps réel.
@@ -280,7 +280,7 @@ async def dashboard(
     )
     severity_data = {row.severity.value: row.count for row in severity_result.all()}
 
-    return templates.TemplateResponse("dashboard.html", {
+    return templates.TemplateResponse("soc/dashboard.html", {
         "request": request,
         "user": user_data,
         "events_by_hour": events_by_hour,
@@ -305,7 +305,7 @@ async def admin_users(
     result = await db.execute(select(User).order_by(User.created_at.desc()))
     users = result.scalars().all()
 
-    return templates.TemplateResponse("admin/users.html", {
+    return templates.TemplateResponse("soc/users.html", {
         "request": request,
         "user": user_data,
         "users": users,
@@ -316,9 +316,9 @@ async def admin_users(
 @router.get("/users/new", response_class=HTMLResponse)
 async def new_user_page(
     request: Request,
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
-    return templates.TemplateResponse("admin/new_user.html", {
+    return templates.TemplateResponse("soc/new_user.html", {
         "request": request,
         "user": user_data,
         "roles": ["soc", "directeur", "comptable", "utilisateur"],
@@ -334,7 +334,7 @@ async def create_user_admin(
     password: str = Form(...),
     role: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
     from app.services.auth_service import create_user, UserRole
     try:
@@ -342,14 +342,14 @@ async def create_user_admin(
                          password=password, role=UserRole(role))
         await db.commit()
         log.info(f"[ADMIN] {user_data['username']} a créé l'utilisateur '{username}'")
-        return RedirectResponse(url="/admin/users?created=1", status_code=302)
+        return RedirectResponse(url="/soc/users?created=1", status_code=302)
     except Exception as e:
         error_str = str(e).lower()
         if "unique" in error_str or "duplicate" in error_str:
             error = "Ce nom d'utilisateur ou email est déjà pris."
         else:
             error = "Une erreur est survenue."
-        return templates.TemplateResponse("admin/new_user.html", {
+        return templates.TemplateResponse("soc/new_user.html", {
             "request": request,
             "user": user_data,
             "roles": ["soc", "directeur", "comptable", "utilisateur"],
@@ -376,7 +376,7 @@ async def lock_user(
     await lock_account(db, id)
     await db.commit()
     log.info(f"[ADMIN] {user_data['username']} a verrouillé '{user.username}:{user.email}'")
-    return RedirectResponse(url="/admin/users", status_code=302)
+    return RedirectResponse(url="/soc/users", status_code=302)
 
 
 @router.post("/users/{id}/unlock")
@@ -398,7 +398,7 @@ async def unlock_user(
     await unlock_account(db, id)
     await db.commit()
     log.info(f"[ADMIN] {user_data['username']} a déverrouillé '{user.username}:{user.email}'")
-    return RedirectResponse(url="/admin/users", status_code=302)
+    return RedirectResponse(url="/soc/users", status_code=302)
 
 
 # ════════════════════════════════════════════════════════════
@@ -412,7 +412,7 @@ async def admin_events(
     event_type: str = None,
     page: int = 1,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
     """
     Historique complet des security_events.
@@ -435,7 +435,7 @@ async def admin_events(
     events_result = await db.execute(query.offset(offset).limit(per_page))
     events = events_result.scalars().all()
 
-    return templates.TemplateResponse("admin/events.html", {
+    return templates.TemplateResponse("soc/events.html", {
         "request": request,
         "user": user_data,
         "events": events,
@@ -460,7 +460,7 @@ async def admin_alerts(
     resolved: str = "false",
     page: int = 1,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
     """Alertes actives et résolues avec résolution manuelle."""
     per_page = 20
@@ -482,7 +482,7 @@ async def admin_alerts(
         select(func.count(Alert.id)).where(Alert.resolved == False)
     )).scalar_one()
 
-    return templates.TemplateResponse("admin/alerts.html", {
+    return templates.TemplateResponse("soc/alerts.html", {
         "request": request,
         "user": user_data,
         "alerts": alerts,
@@ -507,7 +507,7 @@ async def resolve_alert_route(
     await resolve_alert(db, uuid.UUID(alert_id))
     await db.commit()
     log.info(f"[ADMIN] Alerte {alert_id} résolue par {user_data['username']}")
-    return RedirectResponse(url="/admin/alerts", status_code=302)
+    return RedirectResponse(url="/soc/alerts", status_code=302)
 
 # ════════════════════════════════════════════════════════════
 # GET /admin/logs/raw — Affichage brut du fichier de log
@@ -516,7 +516,7 @@ async def resolve_alert_route(
 @router.get("/logs/raw")
 async def view_raw_logs(
     request: Request,
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
     """
     Renvoie le contenu brut du fichier security.log
@@ -558,7 +558,7 @@ async def clear_data_page(
     alerts_count = alerts_count_result.scalar_one()
     events_count = events_count_result.scalar_one()
     
-    return templates.TemplateResponse("admin/clear_data.html", {
+    return templates.TemplateResponse("soc/clear_data.html", {
         "request": request,
         "user": user_data,
         "alerts_count": alerts_count,
@@ -574,7 +574,7 @@ async def clear_data_page(
 async def clear_all_data(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("soc")),
 ):
     """
     Supprime toutes les alertes et événements de la base de données.
@@ -605,4 +605,4 @@ async def clear_all_data(
     
     log.warning(f"[ADMIN] {user_data['username']} a supprimé toutes les alertes et événements")
     
-    return RedirectResponse(url="/admin/clear-data?deleted=1", status_code=302)
+    return RedirectResponse(url="/soc/clear-data?deleted=1", status_code=302)

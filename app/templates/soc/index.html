@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Administration — XUD-Bank{% endblock %}
+{% block title %}Graphe — SOC{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -71,22 +71,21 @@
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a active" href="/admin/"><i class="bi bi-house"></i>Vue admin</a>
-            <a class="sb-a" href="/admin/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
+            <a class="sb-a active" href="/soc/"><i class="bi bi-house"></i>Graphes</a>
+            <a class="sb-a" href="/soc/dashboard"><i class="bi bi-graph-up"></i>Dashboard</a>
         </div>
         <div class="sb-grp">
             <div class="sb-grp-label">Surveillance</div>
-            <a class="sb-a" href="/admin/alerts"><i class="bi bi-bell"></i>Alertes</a>
-            <a class="sb-a" href="/admin/events"><i class="bi bi-list-ul"></i>Événements</a>
-            <a class="sb-a" href="/admin/users"><i class="bi bi-people"></i>Utilisateurs</a>
+            <a class="sb-a" href="/soc/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a" href="/soc/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a" href="/soc/users"><i class="bi bi-people"></i>Utilisateurs</a>
         </div>
-        {% if user.role in ['admin', 'directeur'] %}
+        <hr class="sb-hr" />
         <div class="sb-grp">
             <div class="sb-grp-label">Système</div>
-            <a class="sb-a" href="/admin/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs bruts</a>
-            <a class="sb-a" href="/admin/clear-data"><i class="bi bi-trash"></i>Vider les données</a>
+            <a class="sb-a" href="/soc/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs</a>
+            <a class="sb-a" href="/soc/clear-data"><i class="bi bi-trash"></i>Vider les données</a>
         </div>
-        {% endif %}
     </nav>
     <main class="xmain" style="display:flex;flex-direction:column;overflow:hidden;">
 
@@ -94,7 +93,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-shrink:0;">
             <div>
                 <h4 style="font-size:1.1rem;margin-bottom:.1rem;">
-                    <i class="bi bi-shield-lock" style="color:var(--lime);margin-right:.45rem;"></i>Administration
+                    <i class="bi bi-shield-lock" style="color:var(--lime);margin-right:.45rem;"></i>Sécurité (SOC)
                 </h4>
                 <p style="font-size:.76rem;color:var(--t2);margin:0;">
                     {{ user.username }}
@@ -141,29 +140,18 @@
                 </div>
                 <div class="xcard-body actions-list" style="flex:1;">
 
-                    <a href="/admin/users/new" class="action-item primary">
-                        <div class="action-icon" style="background:var(--lime);">
-                            <i class="bi bi-person-plus-fill" style="color:var(--t-inv);"></i>
-                        </div>
-                        <div>
-                            <div class="action-title" style="color:var(--lime);">Créer un utilisateur</div>
-                            <div class="action-sub">Admin, comptable, directeur, client</div>
-                        </div>
-                        <i class="bi bi-arrow-right" style="color:var(--lime);margin-left:auto;font-size:.8rem;"></i>
-                    </a>
-
-                    <a href="/admin/users" class="action-item">
+                    <a href="/soc/users" class="action-item">
                         <div class="action-icon" style="background:rgba(37,99,235,.15);">
                             <i class="bi bi-people-fill" style="color:#60A5FA;"></i>
                         </div>
                         <div>
-                            <div class="action-title">Gérer les utilisateurs</div>
-                            <div class="action-sub">Verrouiller, déverrouiller</div>
+                            <div class="action-title">Gérer les comptes</div>
+                            <div class="action-sub">Suivi et Verrouillage</div>
                         </div>
                         <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
                     </a>
 
-                    <a href="/admin/alerts" class="action-item">
+                    <a href="/soc/alerts" class="action-item">
                         <div class="action-icon" style="background:rgba(245,158,11,.12);">
                             <i class="bi bi-bell-fill" style="color:var(--s-med);"></i>
                         </div>
@@ -174,7 +162,7 @@
                         <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
                     </a>
 
-                    <a href="/admin/events" class="action-item">
+                    <a href="/soc/events" class="action-item">
                         <div class="action-icon" style="background:rgba(180,255,69,.08);">
                             <i class="bi bi-list-ul" style="color:var(--lime);"></i>
                         </div>
@@ -185,7 +173,7 @@
                         <i class="bi bi-arrow-right" style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
                     </a>
 
-                    <a href="/admin/logs/raw" target="_blank" class="action-item">
+                    <a href="/soc/logs/raw" target="_blank" class="action-item">
                         <div class="action-icon" style="background:rgba(107,114,128,.15);">
                             <i class="bi bi-file-earmark-text" style="color:#9CA3AF;"></i>
                         </div>
@@ -197,7 +185,7 @@
                             style="color:var(--t3);margin-left:auto;font-size:.8rem;"></i>
                     </a>
 
-                    <a href="/admin/dashboard" class="action-item">
+                    <a href="/soc/dashboard" class="action-item">
                         <div class="action-icon" style="background:rgba(139,92,246,.12);">
                             <i class="bi bi-graph-up" style="color:var(--s-crit);"></i>
                         </div>

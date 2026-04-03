@@ -1,6 +1,6 @@
 # ============================================================
-# XUD-BANK — secureDataMonitor/routers/admin.py
-# Routes du tableau de bord sécurité (SOC / Admin)
+# XUD-BANK — app/routers/direction.py
+# Routes de la direction générale (Gestion Personnel)
 # Université de Kara – FAST-LPSIC S6 | 2025-2026
 # ============================================================
 from __future__ import annotations
@@ -10,7 +10,8 @@ import uuid
 import time
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from app.services.report_service import ReportService
 from app.config import templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc
@@ -18,6 +19,7 @@ from sqlalchemy import select, func, and_, desc
 from app.database import get_db
 from app.config import get_settings
 from app.models.user import User
+from app.models.bank_account import BankAccount, AccountClassification
 from app.models.security_event import SecurityEvent, SeverityLevel, EventType
 from app.models.alert import Alert
 from app.services.auth_service import require_role, get_current_user_data
@@ -26,7 +28,7 @@ from secureDataMonitor.services.logger import resolve_alert, close_event
 settings = get_settings()
 log = logging.getLogger("xud_bank.router.admin")
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/direction", tags=["direction"])
 
 # ════════════════════════════════════════════════════════════
 # CACHE — Dashboard stats avec TTL de 5 secondes
@@ -130,7 +132,7 @@ async def _require_admin_or_analyst(request: Request, db: AsyncSession) -> dict:
 async def admin_index(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """
     Vue principale admin/SOC :
@@ -214,7 +216,7 @@ async def admin_index(
     )
     alert_severity_stats = {r.alert_level.value: r.count for r in alert_severity_result.all()}
 
-    return templates.TemplateResponse("admin/index.html", {
+    return templates.TemplateResponse("direction/dashboard.html", {
         "request": request,
         "user": user_data,
         "stats": stats,
@@ -225,14 +227,14 @@ async def admin_index(
 
 
 # ════════════════════════════════════════════════════════════
-# GET /admin/dashboard — Tableau de bord sécurité temps réel
+# GET /direction/dashboard — Tableau de bord sécurité temps réel
 # ════════════════════════════════════════════════════════════
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """
     Tableau de bord sécurité avec WebSocket pour alertes temps réel.
@@ -273,59 +275,98 @@ async def dashboard(
     events = events_result.scalars().all()
 
     # Stats severity
+    # Stats severity (pour la légende du graphe)
     severity_result = await db.execute(
         select(SecurityEvent.severity, func.count(SecurityEvent.id).label("count"))
         .where(SecurityEvent.timestamp >= last_24h)
         .group_by(SecurityEvent.severity)
     )
-    severity_data = {row.severity.value: row.count for row in severity_result.all()}
+    severity_stats = {row.severity.value: row.count for row in severity_result.all()}
 
-    return templates.TemplateResponse("dashboard.html", {
+    # Data pour le graphe (alertes par heure et severity)
+    chart_result = await db.execute(
+        select(
+            func.date_trunc("hour", Alert.timestamp).label("hour"),
+            Alert.alert_level,
+            func.count(Alert.id).label("count"),
+        )
+        .where(Alert.timestamp >= last_24h)
+        .group_by("hour", Alert.alert_level)
+        .order_by("hour")
+    )
+    chart_rows = chart_result.all()
+
+    slots = []
+    slot = last_24h.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    while slot <= now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1):
+        slots.append(slot.strftime('%H:%M'))
+        slot += timedelta(hours=1)
+
+    chart_data = {"labels": slots}
+    for level in ["LOW", "MEDIUM", "HIGH", "CRITICAL"]:
+        chart_data[level] = [
+            sum(r.count for r in chart_rows
+                if str(r.hour)[11:16] == h and r.alert_level.value == level)
+            for h in slots
+        ]
+
+    # Stats pour les compteurs haut
+    stats = await get_dashboard_stats(db)
+
+    return templates.TemplateResponse("direction/dashboard.html", {
         "request": request,
         "user": user_data,
-        "events_by_hour": events_by_hour,
+        "stats": stats,
+        "severity_stats": severity_stats,
+        "chart_data": chart_data,
         "alerts": alerts,
         "events": events,
-        "severity_data": severity_data,
         "ws_url": f"ws://{request.headers.get('host')}/ws/alerts",
     })
 
 
 # ════════════════════════════════════════════════════════════
-# GET /admin/users — Gestion utilisateurs
+# GET /direction/users — Gestion utilisateurs
 # ════════════════════════════════════════════════════════════
 
 @router.get("/users", response_class=HTMLResponse)
-async def admin_users(
+async def direction_users(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
-    """Liste des utilisateurs avec actions de verrouillage/déverrouillage."""
-    result = await db.execute(select(User).order_by(User.created_at.desc()))
+    """Liste du personnel (soc, directeur, comptable) avec action de suppression."""
+    from app.models.user import UserRole
+    personnel_roles = [UserRole.soc, UserRole.directeur, UserRole.comptable]
+    
+    result = await db.execute(
+        select(User)
+        .where(User.role.in_(personnel_roles))
+        .order_by(User.created_at.desc())
+    )
     users = result.scalars().all()
 
-    return templates.TemplateResponse("admin/users.html", {
+    return templates.TemplateResponse("direction/users.html", {
         "request": request,
         "user": user_data,
         "users": users,
     })
 
 
-# GET /admin/users/new — Formulaire création utilisateur
+# GET /direction/users/new — Formulaire création utilisateur
 @router.get("/users/new", response_class=HTMLResponse)
 async def new_user_page(
     request: Request,
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
-    return templates.TemplateResponse("admin/new_user.html", {
+    return templates.TemplateResponse("direction/new_user.html", {
         "request": request,
         "user": user_data,
         "roles": ["soc", "directeur", "comptable", "utilisateur"],
     })
 
 
-# POST /admin/users/new — Création
+# POST /direction/users/new — Création
 @router.post("/users/new", response_class=HTMLResponse)
 async def create_user_admin(
     request: Request,
@@ -334,7 +375,7 @@ async def create_user_admin(
     password: str = Form(...),
     role: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     from app.services.auth_service import create_user, UserRole
     try:
@@ -342,14 +383,14 @@ async def create_user_admin(
                          password=password, role=UserRole(role))
         await db.commit()
         log.info(f"[ADMIN] {user_data['username']} a créé l'utilisateur '{username}'")
-        return RedirectResponse(url="/admin/users?created=1", status_code=302)
+        return RedirectResponse(url="/direction/users?created=1", status_code=302)
     except Exception as e:
         error_str = str(e).lower()
         if "unique" in error_str or "duplicate" in error_str:
             error = "Ce nom d'utilisateur ou email est déjà pris."
         else:
             error = "Une erreur est survenue."
-        return templates.TemplateResponse("admin/new_user.html", {
+        return templates.TemplateResponse("direction/new_user.html", {
             "request": request,
             "user": user_data,
             "roles": ["soc", "directeur", "comptable", "utilisateur"],
@@ -357,48 +398,27 @@ async def create_user_admin(
         })
 
 
-@router.post("/users/{id}/lock")
-async def lock_user(
+@router.post("/users/{id}/delete")
+async def delete_user(
     id: uuid.UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
-    """Verrouille un compte utilisateur (admin uniquement)."""
-    from secureDataMonitor.services.detection import lock_account
-
-    # Récupère l'email via le id (unlock_account attend un email)
+    """Supprime un utilisateur (Relever de ses fonctions)."""
     result = await db.execute(select(User).where(User.id == id))
     user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail=f"Utilisateur introuvable")
     
-    await lock_account(db, id)
-    await db.commit()
-    log.info(f"[ADMIN] {user_data['username']} a verrouillé '{user.username}:{user.email}'")
-    return RedirectResponse(url="/admin/users", status_code=302)
-
-
-@router.post("/users/{id}/unlock")
-async def unlock_user(
-    id: uuid.UUID,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc")),
-):
-    """Déverrouille un compte utilisateur (admin uniquement)."""
-    from app.services.auth_service import unlock_account
-
-    # Récupère l'email via le username (unlock_account attend un email)
-    result = await db.execute(select(User).where(User.id == id))
-    user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail=f"Utilisateur introuvable")
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    
+    if user.id == uuid.UUID(user_data["user_id"]):
+         raise HTTPException(status_code=400, detail="Vous ne pouvez pas vous supprimer vous-même")
 
-    await unlock_account(db, id)
+    await db.delete(user)
     await db.commit()
-    log.info(f"[ADMIN] {user_data['username']} a déverrouillé '{user.username}:{user.email}'")
-    return RedirectResponse(url="/admin/users", status_code=302)
+    log.warning(f"[DIRECTION] {user_data['username']} a rélevé de ses fonctions '{user.username}:{user.email}'")
+    return RedirectResponse(url="/direction/users?deleted=1", status_code=302)
 
 
 # ════════════════════════════════════════════════════════════
@@ -412,7 +432,7 @@ async def admin_events(
     event_type: str = None,
     page: int = 1,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """
     Historique complet des security_events.
@@ -435,7 +455,7 @@ async def admin_events(
     events_result = await db.execute(query.offset(offset).limit(per_page))
     events = events_result.scalars().all()
 
-    return templates.TemplateResponse("admin/events.html", {
+    return templates.TemplateResponse("direction/events.html", {
         "request": request,
         "user": user_data,
         "events": events,
@@ -460,7 +480,7 @@ async def admin_alerts(
     resolved: str = "false",
     page: int = 1,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """Alertes actives et résolues avec résolution manuelle."""
     per_page = 20
@@ -482,7 +502,7 @@ async def admin_alerts(
         select(func.count(Alert.id)).where(Alert.resolved == False)
     )).scalar_one()
 
-    return templates.TemplateResponse("admin/alerts.html", {
+    return templates.TemplateResponse("direction/alerts.html", {
         "request": request,
         "user": user_data,
         "alerts": alerts,
@@ -500,14 +520,14 @@ async def resolve_alert_route(
     alert_id: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """Marque une alerte comme résolue."""
     import uuid
     await resolve_alert(db, uuid.UUID(alert_id))
     await db.commit()
     log.info(f"[ADMIN] Alerte {alert_id} résolue par {user_data['username']}")
-    return RedirectResponse(url="/admin/alerts", status_code=302)
+    return RedirectResponse(url="/direction/alerts", status_code=302)
 
 # ════════════════════════════════════════════════════════════
 # GET /admin/logs/raw — Affichage brut du fichier de log
@@ -516,7 +536,7 @@ async def resolve_alert_route(
 @router.get("/logs/raw")
 async def view_raw_logs(
     request: Request,
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """
     Renvoie le contenu brut du fichier security.log
@@ -546,7 +566,7 @@ async def view_raw_logs(
 async def clear_data_page(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """
     Page de confirmation pour la suppression de toutes les alertes et événements.
@@ -558,7 +578,7 @@ async def clear_data_page(
     alerts_count = alerts_count_result.scalar_one()
     events_count = events_count_result.scalar_one()
     
-    return templates.TemplateResponse("admin/clear_data.html", {
+    return templates.TemplateResponse("direction/clear_data.html", {
         "request": request,
         "user": user_data,
         "alerts_count": alerts_count,
@@ -574,7 +594,7 @@ async def clear_data_page(
 async def clear_all_data(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("soc", "directeur")),
+    user_data: dict = Depends(require_role("directeur")),
 ):
     """
     Supprime toutes les alertes et événements de la base de données.
@@ -605,4 +625,35 @@ async def clear_all_data(
     
     log.warning(f"[ADMIN] {user_data['username']} a supprimé toutes les alertes et événements")
     
-    return RedirectResponse(url="/admin/clear-data?deleted=1", status_code=302)
+    return RedirectResponse(url="/direction/clear-data?deleted=1", status_code=302)
+
+@router.get("/export-pdf")
+async def export_accounts_pdf_direction(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user_data: dict = Depends(require_role("directeur")),
+):
+    """Génère un rapport PDF global pour la Direction."""
+    # La Direction voit TOUS les comptes
+    query = select(BankAccount).order_by(BankAccount.id_compte.asc())
+    
+    result = await db.execute(query)
+    accounts = result.scalars().all()
+    
+    accounts_data = []
+    for acc in accounts:
+        accounts_data.append({
+            "id_compte": acc.id_compte,
+            "titulaire": acc.titulaire,
+            "solde": float(acc.solde),
+            "classification": acc.classification.value,
+            "created_at": acc.created_at,
+        })
+    
+    pdf_content = ReportService.generate_accounts_pdf(accounts_data, f"{user_data['username']} (Direction)")
+    
+    return Response(
+        content=bytes(pdf_content),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=rapport_direction_global.pdf"}
+    )

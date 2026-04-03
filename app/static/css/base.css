@@ -286,7 +286,7 @@ h6 {
     border-radius: 20px;
 }
 
-.u-role-admin {
+.u-role-soc {
     background: rgba(255, 69, 96, .15);
     color: #FF4560;
     border: 1px solid rgba(255, 69, 96, .25);
@@ -692,7 +692,7 @@ h6 {
     text-transform: uppercase;
     letter-spacing: .5px;
     padding: .18rem .6rem;
-    border-radius: 20px;
+    border-radius: 25px;
     font-family: 'Figtree', sans-serif;
     white-space: nowrap;
 }

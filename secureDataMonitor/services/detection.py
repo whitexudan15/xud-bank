@@ -7,7 +7,7 @@
 # 5 règles implémentées :
 #   Règle 1 — Brute Force        : 3 échecs < 2 min → verrouillage
 #   Règle 2 — Injection SQL      : patterns dans les inputs
-#   Règle 3 — Accès admin        : rôle insuffisant → /admin/*
+#   Règle 3 — Accès admin        : rôle insuffisant → /admin/* (SOC)
 #   Règle 4 — Exfiltration masse : >20 consultations < 1 min
 #   Règle 5 — Énumération        : même IP, 3 usernames < 5 min
 # ============================================================
@@ -210,15 +210,15 @@ def check_special_characters(value: str, field: str = "") -> bool:
 
 
 # ════════════════════════════════════════════════════════════
-# RÈGLE 3 — Accès Admin non autorisé
+# RÈGLE 3 — Accès Sécurité (SOC) non autorisé
 # ════════════════════════════════════════════════════════════
 
 def check_admin_access(path: str, role: str) -> bool:
     """
-    Règle 3 : utilisateur sans rôle admin tente d'accéder à /admin/*.
+    Règle 3 : utilisateur sans rôle soc tente d'accéder à /admin/*.
     Retourne True si l'accès est interdit.
     """
-    if path.startswith("/admin") and role != "admin":
+    if path.startswith("/admin") and role != "soc":
         log.warning(f"[Règle 3] Accès /admin refusé pour rôle='{role}'")
         return True
     return False

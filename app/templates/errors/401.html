@@ -88,7 +88,7 @@
     .err-sub {
         font-size: .9rem;
         color: var(--t2);
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         position: relative;
         z-index: 1;
     }
@@ -179,15 +179,24 @@
     <div class="err-wrap">
         <div class="err-num-bg">401</div>
         <div class="err-icon"><i class="bi bi-shield-x"></i></div>
-        <h2 class="err-title" style="padding-bottom: .5rem;">UNAUTHORIZED</h2>
-        <p class="err-sub">
-            Accès non autorisé à
-            <code style="background:rgba(255,69,96,.08);border:1px solid rgba(255,69,96,.18);
-                          color:var(--s-hi);padding:.5rem;font-size:.85rem;">{{ path }}</code>
-            Authentifiez vous !
+        <h2 class="err-title" style="padding-bottom: .5rem;">UNAUTHORIZED</h2>        
+        <!-- Session status indicator -->
+        <div style="display:inline-flex;align-items:center;gap:.5rem;
+                    background:rgba(255,69,96,.08);border:1.5px solid rgba(255,69,96,.25);padding:.2rem;
+                    animation:fadeSlideUp .4s var(--ease) .15s both;">
+            <i class="bi bi-exclamation-triangle-fill" style="color:var(--s-hi);font-size:1.1rem;"></i>
+            <span style="color:var(--s-hi);font-size:.85rem;font-weight:600;">
+                Session expirée ou invalide
+            </span>
+            <i class="bi bi-exclamation-triangle-fill" style="color:var(--s-hi);font-size:1.1rem;"></i>
+        </div>
+        
+        <p class="err-sub" style="margin-top:1.2rem;font-size:1rem;color:var(--time);">
+            <i class="bi bi-info-circle" style="margin-right:.4rem;"></i>
+            Veuillez vous authentifier pour accéder à cette ressource
         </p>
         <div class="err-actions">
-            <a href="/auth/login" class="err-btn-p"><i class="bi bi-house"></i>S'Authentifier</a>
+            <a href="/auth/login" class="err-btn-p"><i class="bi bi-house"></i>Se connecter</a>
             <a href="/auth/logout" class="err-btn-s"><i class="bi bi-box-arrow-right"></i>Déconnexion</a>
         </div>
     </div>

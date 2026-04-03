@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs — SOC{% endblock %}
+
+{% block body %}
+<div class="app-shell">
+    <nav class="xsidebar">
+        <div class="sb-grp">
+            <a class="sb-a" href="/soc/dashboard"><i class="bi bi-house"></i>Dashboard</a>
+             <a class="sb-a" href="/soc/"><i class="bi bi-house"></i>Graphes</a>
+        </div>
+        <div class="sb-grp">
+            <div class="sb-grp-label">Surveillance</div>
+            <a class="sb-a" href="/soc/alerts"><i class="bi bi-bell"></i>Alertes</a>
+            <a class="sb-a" href="/soc/events"><i class="bi bi-list-ul"></i>Événements</a>
+            <a class="sb-a active" href="/soc/users"><i class="bi bi-people"></i>Utilisateurs</a>
+        </div>
+        <hr class="sb-hr" />
+        <div class="sb-grp">
+            <div class="sb-grp-label">Système</div>
+            <a class="sb-a" href="/soc/logs/raw" target="_blank"><i class="bi bi-terminal"></i>Logs</a>
+            <a class="sb-a" href="/soc/clear-data"><i class="bi bi-trash"></i>Clear Data</a>
+        </div>
+    </nav>
+    <main class="xmain" style="display:flex;flex-direction:column;">
+
+        <div class="pg-hdr" style="flex-shrink:0;">
+            <div>
+                <h4><i class="bi bi-people" style="color:var(--lime);margin-right:.5rem;"></i>Gestion des utilisateurs
+                </h4>
+                <p class="sub"><strong style="color:var(--t1); margin-top: .5rem;">{{ users|length }}</strong> utilisateur(s)
+                </p>
+            </div>
+            <a href="/soc/dashboard" style="display:inline-flex;align-items:center;gap:.4rem;
+               background:transparent;border:1.5px solid var(--lime);border-radius:9px;
+               color:var(--t2);padding:.4rem .9rem;font-size:.8rem;font-weight:600;text-decoration:none;">
+                <i class="bi bi-arrow-left"></i>Dashboard
+            </a>
+        </div>
+
+        <div class="xcard"
+            style="flex:1;min-height:0;display:flex;flex-direction:column;animation:fadeSlideUp .4s var(--ease) .08s both;">
+            <div class="table-wrap" style="flex:1;">
+                <table class="xtable">
+                    <thead>
+                        <tr>
+                            <th style="padding-left:1.4rem;">Utilisateur</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Statut</th>
+                            <th>Créé le</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td style="padding-left:1.4rem;">
+                                <div style="display:flex;align-items:center;gap:.65rem;">
+                                    <div
+                                        style="width:32px;height:32px;border-radius:50%;flex-shrink:0;
+                                                background:linear-gradient(135deg,#1a3020,var(--lime));
+                                                display:flex;align-items:center;justify-content:center;
+                                                font-size:.62rem;font-weight:700;color:var(--t-inv);text-transform:uppercase;">
+                                        {{ u.username[:2] }}
+                                    </div>
+                                    <span
+                                        style="font-weight:700;color:var(--t1);font-family:'Syne',sans-serif;font-size:.88rem;">
+                                        {{ u.username }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td style="font-size:.82rem;color:var(--t2);">{{ u.email }}</td>
+                            <td>
+                                {% if u.role.value == 'soc' %}
+                                <span class="u-role u-role-soc">soc</span>
+                                {% elif u.role.value == 'directeur' %}
+                                <span class="u-role u-role-directeur">directeur</span>
+                                {% elif u.role.value == 'comptable' %}
+                                <span class="u-role u-role-comptable">comptable</span>
+                                {% else %}
+                                <span class="u-role u-role-client">utilisateur</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.is_locked %}
+                                <span class="bdg"
+                                    style="background:rgba(255,69,96,.1);color:var(--s-hi);border:1px solid rgba(255,69,96,.22);">
+                                    <i class="bi bi-lock-fill"></i>Verrouillé
+                                </span>
+                                {% else %}
+                                <span class="bdg"
+                                    style="background:rgba(180,255,69,.08);color:var(--lime);border:1px solid var(--lime-b);">
+                                    <i class="bi bi-unlock-fill"></i>Actif
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td style="font-size:.8rem;color:var(--t3);">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if u.is_locked %}
+                                {% if u.id|string == user.user_id %}
+                                <span style="font-size:.7rem;color:var(--t3);">— vous-même —</span>
+                                {% else %}
+                                <form method="post" action="/soc/users/{{ u.id }}/unlock" class="d-inline">
+                                    <button type="submit" class="btn-sm-ok"><i
+                                            class="bi bi-unlock-fill"></i>Déverrouiller</button>
+                                </form>
+                                {% endif %}
+                                {% else %}
+                                {% if u.role.value == 'soc' %}
+                                <!-- Bouton Verrouiller désactivé UNIQUEMENT pour le SOC -->
+                                <button type="button" class="btn-sm-danger"
+                                    style="opacity:0.5;cursor:not-allowed;pointer-events:none;"
+                                    title="Impossible de verrouiller le compte SOC" disabled>
+                                    <i class="bi bi-lock-fill"></i>Verrouiller
+                                </button>
+                                {% else %}
+                                <!-- Bouton Verrouiller activé pour tous sauf SOC -->
+                                {% if u.id|string == user.user_id %}
+                                <span style="font-size:.7rem;color:var(--t3);">— vous-même —</span>
+                                {% else %}
+                                <form method="post" action="/soc/users/{{ u.id }}/lock" class="d-inline">
+                                    <button type="submit" class="btn-sm-danger"><i
+                                            class="bi bi-lock-fill"></i>Verrouiller</button>
+                                </form>
+                                {% endif %}
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+{% block extra_js %}
+<script>
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProto}//${location.host}/ws/alerts`);
+
+    ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+
+        if (msg.type === 'new_event') {
+            const event = msg.event;
+            const username = event.username;
+            const eventType = typeof event.event_type === 'object' ? event.event_type.value : event.event_type;
+
+            if (username) {
+                // Find the row with this username
+                const rows = document.querySelectorAll('.xtable tbody tr');
+                rows.forEach(row => {
+                    const nameCell = row.querySelector('td:first-child span[style*="font-weight:700"]');
+                    if (nameCell && nameCell.textContent.trim() === username) {
+                        handleUserEvent(row, eventType, username);
+                    }
+                });
+            }
+
+            // Show subtle notification
+            showActivityNotification(eventType, username);
+        }
+
+        if (msg.type === 'new_alert') {
+            // Show notification that alerts are happening
+            showAlertNotification();
+        }
+    };
+
+    function handleUserEvent(row, eventType, username) {
+        if (eventType === 'LOGIN_FAILED') {
+            // Update failed attempts count
+            const failCell = row.querySelector('td:nth-child(4) span');
+            if (failCell) {
+                const current = parseInt(failCell.textContent) || 0;
+                const newCount = current + 1;
+                failCell.textContent = newCount;
+
+                // Update styling based on new count
+                if (newCount >= 3) {
+                    failCell.style.fontWeight = '800';
+                    failCell.style.color = 'var(--s-hi)';
+                }
+
+                // Flash effect
+                flashRow(row, 'rgba(245, 158, 11, 0.15)');
+            }
+        }
+
+        if (eventType === 'LOGIN_LOCKED') {
+            // Update status to locked
+            const statusCell = row.querySelector('td:nth-child(5)');
+            if (statusCell) {
+                statusCell.innerHTML = `<span class="bdg" style="background:rgba(255,69,96,.1);color:var(--s-hi);border:1px solid rgba(255,69,96,.22);"><i class="bi bi-lock-fill"></i>Verrouillé</span>`;
+            }
+
+            // Update action button to unlock
+            const actionCell = row.querySelector('td:nth-child(7)');
+            if (actionCell) {
+                actionCell.innerHTML = `<form method="post" action="/soc/users/${username}/unlock" class="d-inline"><button type="submit" class="btn-sm-ok"><i class="bi bi-unlock-fill"></i>Déverrouiller</button></form>`;
+            }
+
+            // Update failed attempts to show max
+            const failCell = row.querySelector('td:nth-child(4) span');
+            if (failCell) {
+                failCell.style.fontWeight = '800';
+                failCell.style.color = 'var(--s-hi)';
+            }
+
+            // Flash effect - red for locked
+            flashRow(row, 'rgba(255, 69, 96, 0.15)', 2000);
+        }
+
+        if (eventType === 'LOGIN_SUCCESS' || eventType === 'UNLOCKED') {
+            // Update status to active
+            const statusCell = row.querySelector('td:nth-child(5)');
+            if (statusCell) {
+                statusCell.innerHTML = `<span class="bdg" style="background:rgba(180,255,69,.08);color:var(--lime);border:1px solid var(--lime-b);"><i class="bi bi-unlock-fill"></i>Actif</span>`;
+            }
+
+            // Update action button - DISABLED for admin, ENABLED for others
+            const actionCell = row.querySelector('td:nth-child(7)');
+            if (actionCell) {
+                if (username === 'soc') {
+                    // SOC account - disable lock button
+                    actionCell.innerHTML = `<button type="button" class="btn-sm-danger" 
+                                                style="opacity:0.5;cursor:not-allowed;pointer-events:none;"
+                                                title="Impossible de verrouiller le compte SOC"
+                                                disabled>
+                                                <i class="bi bi-lock-fill"></i>Verrouiller
+                                            </button>`;
+                } else {
+                    // Other users - enable lock button
+                    actionCell.innerHTML = `<form method="post" action="/soc/users/${username}/lock" class="d-inline">
+                                                <button type="submit" class="btn-sm-danger"><i class="bi bi-lock-fill"></i>Verrouiller</button>
+                                            </form>`;
+                }
+            }
+
+            // Reset failed attempts display
+            const failCell = row.querySelector('td:nth-child(4) span');
+            if (failCell) {
+                failCell.textContent = '0';
+                failCell.style.fontWeight = '400';
+                failCell.style.color = 'var(--t3)';
+            }
+
+            // Flash effect - green for unlocked
+            flashRow(row, 'rgba(180, 255, 69, 0.15)', 2000);
+        }
+    }
+
+    function flashRow(row, color, duration = 1500) {
+        row.style.transition = 'background 0.3s ease';
+        row.style.background = color;
+        setTimeout(() => {
+            row.style.background = '';
+        }, duration);
+    }
+
+    let activityTimeout;
+    function showActivityNotification(eventType, username) {
+        let indicator = document.getElementById('users-activity-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'users-activity-indicator';
+            indicator.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--bg-card);border:1px solid var(--bdr2);border-radius:10px;padding:12px 16px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);backdrop-filter:blur(12px);font-size:.8rem;transition:opacity 0.3s;opacity:0;';
+            document.body.appendChild(indicator);
+        }
+
+        const userText = username ? ` — ${username}` : '';
+        let icon = 'bi-activity';
+        let color = 'var(--t2)';
+
+        if (eventType === 'LOGIN_FAILED') { icon = 'bi-x-circle'; color = 'var(--s-med)'; }
+        else if (eventType === 'LOGIN_LOCKED') { icon = 'bi-lock-fill'; color = 'var(--s-hi)'; }
+        else if (eventType === 'LOGIN_SUCCESS') { icon = 'bi-check-circle'; color = 'var(--s-low)'; }
+
+        indicator.innerHTML = `<i class="bi ${icon}" style="color:${color};margin-right:.5rem;"></i>${eventType}${userText}`;
+        indicator.style.opacity = '1';
+
+        clearTimeout(activityTimeout);
+        activityTimeout = setTimeout(() => {
+            indicator.style.opacity = '0';
+        }, 3000);
+    }
+
+    let alertTimeout;
+    function showAlertNotification() {
+        let indicator = document.getElementById('users-alert-indicator');
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.id = 'users-alert-indicator';
+            indicator.className = 'bdg bdg-HIGH';
+            indicator.style.cssText = 'margin-left:.5rem;font-size:.7rem;cursor:pointer;';
+            indicator.innerHTML = '<i class="bi bi-bell-fill"></i> Alerte';
+            indicator.onclick = () => window.location.href = '/soc/alerts';
+            const sub = document.querySelector('.pg-hdr .sub');
+            if (sub) sub.appendChild(indicator);
+        }
+
+        indicator.style.opacity = '1';
+        indicator.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            indicator.style.transform = 'scale(1)';
+        }, 200);
+
+        clearTimeout(alertTimeout);
+        alertTimeout = setTimeout(() => {
+            indicator.style.opacity = '0.6';
+        }, 3000);
+    }
+</script>
+{% endblock %}
+{% endblock %}
