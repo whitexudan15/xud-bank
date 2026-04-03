@@ -23,7 +23,7 @@ router = APIRouter(prefix="/comptabilite", tags=["comptabilite"])
 async def comptabilite_dashboard(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("comptable", "directeur", "soc")),
+    user_data: dict = Depends(require_role("comptable")),
 ):
     """
     Audit ou Gestion : affiche tous les comptes (hors SECRET pour le comptable).
@@ -57,10 +57,6 @@ async def comptabilite_dashboard(
                 AccountClassification.confidentiel,
             ])
         )
-    else:
-        # Directeur/SOC : tout (mais SOC a d'abord été bloqué par require_role si pas soc)
-        # En fait soc peut tout auditer mais pas modifier.
-        query = select(BankAccount)
     query = query.order_by(BankAccount.created_at.desc())
     result = await db.execute(query)
     accounts = result.scalars().all()
@@ -153,7 +149,7 @@ async def create_account(
 async def export_accounts_pdf(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user_data: dict = Depends(require_role("comptable", "directeur")),
+    user_data: dict = Depends(require_role("comptable")),
 ):
     from fpdf import FPDF
 

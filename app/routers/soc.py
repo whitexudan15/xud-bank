@@ -82,50 +82,6 @@ async def get_dashboard_stats(db: AsyncSession):
     _dashboard_cache["timestamp"] = now
     return stats
 
-
-# ════════════════════════════════════════════════════════════
-# MIDDLEWARE — Vérification accès admin (Règle 3)
-# ════════════════════════════════════════════════════════════
-
-async def _require_admin_or_analyst(request: Request, db: AsyncSession) -> dict:
-    """Vérifie rôle admin ou directeur, émet événement si refus d'accès."""
-    from secureDataMonitor.events.dispatcher import dispatcher
-    
-    try:
-        user_data = get_current_user_data(request)
-    except HTTPException as e:
-        if e.status_code == status.HTTP_401_UNAUTHORIZED:
-            await dispatcher.emit("unauthorized", {
-                "ip": request.client.host,
-                "username": "anonymous",
-                "role": "none",
-                "path": str(request.url.path),
-                "reason": "token absent ou expiré"
-            })
-            raise
-        raise
-
-    allowed_roles = {"soc", "directeur"}
-    if user_data.get("role") not in allowed_roles:
-        await dispatcher.emit("unauthorized", {
-            "ip": request.client.host,
-            "username": user_data.get("username"),
-            "role": user_data.get("role"),
-            "path": str(request.url.path),
-            "reason": "rôle insuffisant"
-        })
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Accès refusé : droits insuffisants",
-        )
-
-    return user_data
-
-
-# ════════════════════════════════════════════════════════════
-# GET /admin/ — Vue synthèse principale
-# ════════════════════════════════════════════════════════════
-
 @router.get("/", response_class=HTMLResponse)
 async def admin_index(
     request: Request,
