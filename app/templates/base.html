@@ -37,23 +37,6 @@
                 <span class="u-name d-none d-sm-block">{{ user.username }}</span>
                 <span class="u-role u-role-{{ user.role }}">{{ user.role }}</span>
             </div>
-            {% if user.role == 'soc' %}
-            <a href="/soc/dashboard" class="nav-btn nav-btn-ghost d-none d-md-inline-flex">
-                <i class="bi bi-graph-up"></i>Dashboard
-            </a>
-            {% elif user.role == 'directeur' %}
-            <a href="/direction/dashboard" class="nav-btn nav-btn-ghost d-none d-md-inline-flex">
-                <i class="bi bi-person-badge"></i>Direction
-            </a>
-            {% elif user.role == 'comptable' %}
-            <a href="/comptabilite/dashboard" class="nav-btn nav-btn-ghost d-none d-md-inline-flex">
-                <i class="bi bi-credit-card"></i>Gestion
-            </a>
-            {% elif user.role == 'utilisateur' %}
-            <a href="/client/dashboard" class="nav-btn nav-btn-ghost d-none d-md-inline-flex">
-                <i class="bi bi-house"></i>Mon Espace
-            </a>
-            {% endif %}
             <a href="/auth/logout" class="nav-btn nav-btn-danger">
                 <i class="bi bi-box-arrow-right"></i>
                 <span class="d-none d-sm-inline">Déconnexion</span>

@@ -405,6 +405,45 @@ async def handle_suspicious_url(data: dict) -> None:
 
 
 # ════════════════════════════════════════════════════════════
+# 8.9 — TENTATIVE DE VOL DE DOSSIERS BANCAIRES
+# ════════════════════════════════════════════════════════════
+
+async def handle_bank_fraud_attempt(data: dict) -> None:
+    """
+    Événement : BANK_FRAUD_ATTEMPT
+    Règle 7   : Accès non autorisé aux rapports bancaires → CRITICAL
+    Actions   : log, alerte CRITICAL, notification SOC immédiate
+    """
+    async with AsyncSessionLocal() as db:
+        # Journalisation de l'événement
+        event = await sec_logger.log_event(
+            db=db,
+            event_type=EventType.BANK_FRAUD_ATTEMPT,
+            severity=SeverityLevel.CRITICAL,
+            username=data.get("username"),
+            ip_address=data["ip"],
+            description=f"Tentative de vol de dossiers bancaires : rôle='{data.get('role')}' sur {data.get('path')}",
+            action_taken="Accès refusé et journalisé - ALERTE MAXIMUM",
+        )
+        await broadcast_event(event)
+        
+        # Création d'une alerte CRITICAL
+        alert = await sec_logger.create_alert(
+            db=db,
+            level=SeverityLevel.CRITICAL,
+            source_event_id=event.id,
+            message=f"🚨⚠️ VOL DE DOSSIERS BANCAIRES : Utilisateur '{data.get('username')}' (rôle: {data.get('role')}) a tenté d'accéder à {data.get('path')} depuis {data['ip']} - NIVEAU CRITIQUE",
+        )
+        await broadcast_alert(alert)
+        await db.commit()
+
+    log.critical(
+        f"[BANK_FRAUD_ATTEMPT] ⚠️ CRITICAL ⚠️ {data['ip']} - User: {data.get('username')} "
+        f"(Role: {data.get('role')}) - Path: {data.get('path')}"
+    )
+
+
+# ════════════════════════════════════════════════════════════
 # ENREGISTREMENT DE TOUS LES HANDLERS
 # ════════════════════════════════════════════════════════════
 
@@ -432,5 +471,6 @@ def register_all_handlers() -> None:
     dispatcher.subscribe("sql_injection",    handle_sql_injection)
     dispatcher.subscribe("enum_attempt",     handle_enum_attempt)
     dispatcher.subscribe("suspicious_url",   handle_suspicious_url)
+    dispatcher.subscribe("bank_fraud_attempt", handle_bank_fraud_attempt)
 
     log.info(f"Handlers enregistrés : {dispatcher.list_events()}")

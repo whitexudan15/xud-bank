@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Mon Espace Client — Xud-Bank{% endblock %}
+{% block title %}Espace Client{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -99,7 +99,7 @@
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a active" href="/client/dashboard"><i class="bi bi-house"></i>Accueil Client</a>
+            <a class="sb-a active" href="/client/dashboard"><i class="bi bi-house"></i>CLIENT</a>
         </div>
     </nav>
 
@@ -107,7 +107,7 @@
         <div class="pg-hdr">
             <div>
                 <h4><i class="bi bi-wallet-fill" style="color:var(--lime);margin-right:.84rem;"></i>Mon Espace Client</h4>
-                <p class="sub">Bienvenue, <strong style="color:var(--t1);">{{ user.username }}</strong>. Voici l'état de vos finances.</p>
+                <p class="sub" style="margin-top:.5rem;">Bienvenue, <strong style="color:var(--t1);font-size: 1.1rem;">{{ user.username }}</strong>. Voici l'état de vos finances.</p>
             </div>
         </div>
 

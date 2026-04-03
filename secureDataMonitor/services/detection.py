@@ -4,12 +4,14 @@
 # Université de Kara – FAST-LPSIC S6 | 2025-2026
 # ============================================================
 #
-# 5 règles implémentées :
+# 7 règles implémentées :
 #   Règle 1 — Brute Force        : 3 échecs < 2 min → verrouillage
 #   Règle 2 — Injection SQL      : patterns dans les inputs
 #   Règle 3 — Accès admin        : rôle insuffisant → /admin/* (SOC)
 #   Règle 4 — Exfiltration masse : >20 consultations < 1 min
 #   Règle 5 — Énumération        : même IP, 3 usernames < 5 min
+#   Règle 6 — Accès hors horaires : plage horaire autorisée
+#   Règle 7 — Vol dossiers       : accès non autorisé aux rapports bancaires
 # ============================================================
 from __future__ import annotations
 
@@ -335,3 +337,46 @@ def check_off_hours(hour: int | None = None) -> bool:
     if outside:
         log.info(f"[Règle 6] Accès hors horaires : {current_hour}h UTC")
     return outside
+
+
+# ════════════════════════════════════════════════════════════
+# RÈGLE 7 — Tentative de vol de dossiers bancaires
+# ════════════════════════════════════════════════════════════
+
+def check_unauthorized_report_access(path: str, role: str) -> bool:
+    """
+    Règle 7 : détecte les tentatives d'accès non autorisé aux rapports bancaires.
+    Routes sensibles : /direction/rapport et /comptabilite/rapport
+    
+    Rôles autorisés :
+    - /direction/rapport : directeur uniquement
+    - /comptabilite/rapport : comptable et directeur
+    
+    Retourne True si l'accès est non autorisé (HIGH severity).
+    """
+    # Routes sensibles à protéger
+    sensitive_reports = [
+        "/direction/rapport",
+        "/comptabilite/rapport"
+    ]
+    
+    # Vérifie si le chemin correspond à un rapport sensible
+    is_sensitive_report = any(path.startswith(report) for report in sensitive_reports)
+    
+    if not is_sensitive_report:
+        return False
+    
+    # Vérification par route
+    if path.startswith("/direction/rapport"):
+        # Seul le directeur peut accéder aux rapports de la direction
+        if role != "directeur":
+            log.warning(f"[Règle 7] Tentative de vol de dossiers bancaires : rôle='{role}' sur {path}")
+            return True
+    
+    elif path.startswith("/comptabilite/rapport"):
+        # Comptable et directeur peuvent accéder aux rapports comptabilité
+        if role not in ["comptable", "directeur"]:
+            log.warning(f"[Règle 7] Tentative de vol de dossiers bancaires : rôle='{role}' sur {path}")
+            return True
+    
+    return False

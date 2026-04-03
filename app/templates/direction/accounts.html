@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Comptabilité{% endblock %}
+{% block title %}Comptes Bancaires — Direction{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -150,7 +150,41 @@
         background: var(--lime-dim);
     }
 
-    .hidden { display: none; }
+    /* Stats cards */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--bg-glass);
+        border: 1px solid var(--bdr2);
+        border-radius: 12px;
+        padding: 1.2rem;
+        backdrop-filter: blur(12px);
+        animation: fadeSlideUp .4s var(--ease) both;
+    }
+
+    .stat-label {
+        font-size: .75rem;
+        color: var(--t3);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        margin-bottom: .4rem;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        font-family: 'Syne', sans-serif;
+    }
+
+    .stat-value.total { color: var(--lime); }
+    .stat-value.public { color: var(--s-low); }
+    .stat-value.confidentiel { color: var(--s-med); }
+    .stat-value.secret { color: var(--s-hi); }
 </style>
 {% endblock %}
 
@@ -158,67 +192,54 @@
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a active" href="/comptabilite/dashboard"><i class="bi bi-house"></i>COMPTABILITE</a>
+            <a class="sb-a active" href="/direction/dashboard"><i class="bi bi-house"></i>DIRECTION</a>
         </div>
         <div class="sb-grp">
-            <div class="sb-grp-label">Rapports</div>
-            <a class="sb-a" href="/comptabilite/rapport" target="_blank"><i class="bi bi-file-earmark-pdf"></i>RAPPORT</a>
+            <div class="sb-grp-label">GESTION</div>
+            <a class="sb-a" href="/direction/users/new"><i class="bi bi-person-plus"></i>RECRUTER</a>
+            <a class="sb-a" href="/direction/users"><i class="bi bi-people"></i>PERSONNEL</a>
+            <a class="sb-a active" href="/direction/accounts"><i class="bi bi-safe"></i>COMPTES BANCAIRES</a>
+        </div>
+        <div class="sb-grp">
+            <div class="sb-grp-label">RAPPORTS</div>
+            <a class="sb-a" href="/direction/rapport" target="_blank"><i class="bi bi-file-earmark-pdf"></i>RAPPORT</a>
         </div>
     </nav>
 
     <main class="xmain">
+        <!-- Header -->
         <div class="pg-hdr">
             <div>
-                <h4><i class="bi bi-safe" style="color:var(--lime);margin-right:.5rem;"></i>Espace Comptabilité</h4>
-                <p class="sub" style="margin-top:.5rem;">Gestion et création des comptes clients</p>
+                <h4><i class="bi bi-safe" style="color:var(--lime);margin-right:.5rem;"></i>Comptes Bancaires</h4>
+                <p class="sub" style="margin-top:.5rem;">Vision globale de tous les comptes ({{ total }} au total)</p>
+            </div>
+            <div style="display:flex;gap:.5rem;">
+                <a href="/direction/rapport" target="_blank" style="display:inline-flex;align-items:center;gap:.4rem;
+                   background:var(--lime);color:var(--t-inv);border:none;border-radius:9px;
+                   padding:.55rem 1.1rem;font-size:.8rem;font-weight:700;text-decoration:none;
+                   box-shadow:0 4px 16px rgba(180,255,69,.28);">
+                    <i class="bi bi-file-earmark-pdf"></i>Exporter
+                </a>
             </div>
         </div>
 
-        <!-- Create Account Form -->
-        <div class="xcard" style="margin-bottom:1.5rem;">
-            <div class="xcard-hdr" style="cursor:pointer;" onclick="document.getElementById('createForm').classList.toggle('hidden')">
-                <div style="display:flex;align-items:center;gap:.6rem;">
-                    <i class="bi bi-plus-circle-fill" style="color:var(--lime);"></i>
-                    <span style="font-weight:700;">Nouveau compte bancaire</span>
-                </div>
+        <!-- Statistics -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total des soldes</div>
+                <div class="stat-value total">{{ "%.2f"|format(total_solde) }} €</div>
             </div>
-            <div class="xcard-body hidden" id="createForm">
-                <form action="/comptabilite/accounts/create" method="post">
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
-                        <div class="xfield">
-                            <label>Numéro de compte</label>
-                            <input type="text" name="id_compte" class="xinput" placeholder="FR76..." required>
-                        </div>
-                        <div class="xfield">
-                            <label>Titulaire</label>
-                            <input type="text" name="titulaire" class="xinput" placeholder="Nom complet" required>
-                        </div>
-                        <div class="xfield">
-                            <label>Solde Initial (€)</label>
-                            <input type="number" step="0.01" name="solde" class="xinput" value="0.00" required>
-                        </div>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                        <div class="xfield">
-                            <label>Classification</label>
-                            <select name="classification" class="xinput xselect">
-                                <option value="public">Public</option>
-                                <option value="confidentiel" selected>Confidentiel</option>
-                            </select>
-                        </div>
-                        <div class="xfield">
-                            <label>Propriétaire (Utilisateur)</label>
-                            <select name="owner_username" class="xinput xselect" required>
-                                {% for u in users_list %}
-                                <option value="{{ u.username }}">{{ u.username }} ({{ u.email }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div style="margin-top:1.2rem;text-align:right;">
-                        <button type="submit" class="btn-lime">Créer le compte</button>
-                    </div>
-                </form>
+            <div class="stat-card">
+                <div class="stat-label">Comptes Public</div>
+                <div class="stat-value public">{{ stats.public }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Comptes Confidentiel</div>
+                <div class="stat-value confidentiel">{{ stats.confidentiel }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Comptes Secret</div>
+                <div class="stat-value secret">{{ stats.secret }}</div>
             </div>
         </div>
 

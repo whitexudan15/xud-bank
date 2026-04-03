@@ -120,6 +120,7 @@ async def health():
 @app.exception_handler(403)
 async def forbidden_handler(request: Request, exc):
     from secureDataMonitor.events.dispatcher import dispatcher
+    from secureDataMonitor.services.detection import check_unauthorized_report_access
     try:
         token = request.cookies.get(settings.SESSION_COOKIE_NAME)
         from app.services.auth_service import decode_session_token
@@ -136,6 +137,16 @@ async def forbidden_handler(request: Request, exc):
             "username": username,
             "role": role,
             "path": request.url.path,
+        })
+    
+    # Règle 7 : Tentative de vol de dossiers bancaires
+    if check_unauthorized_report_access(request.url.path, role):
+        await dispatcher.emit("bank_fraud_attempt", {
+            "ip": request.client.host,
+            "username": username,
+            "role": role,
+            "path": request.url.path,
+            "severity": "CRITICAL",
         })
 
     return templates_monitor.TemplateResponse(

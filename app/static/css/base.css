@@ -310,6 +310,12 @@ h6 {
     border: 1px solid var(--lime-b);
 }
 
+.u-role-utilisateur {
+    background: var(--lime-dim);
+    color: var(--lime);
+    border: 1px solid var(--lime-b);
+}
+
 /* Nav buttons */
 .nav-btn {
     display: inline-flex;

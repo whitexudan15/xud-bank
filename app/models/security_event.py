@@ -25,6 +25,7 @@ class EventType(str, enum.Enum):
     ENUM_ATTEMPT        = "ENUM_ATTEMPT"
     OFF_HOURS_ACCESS    = "OFF_HOURS_ACCESS"
     SUSPICIOUS_URL      = "SUSPICIOUS_URL"
+    BANK_FRAUD_ATTEMPT  = "BANK_FRAUD_ATTEMPT"
 
 
 class SeverityLevel(str, enum.Enum):

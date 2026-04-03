@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Direction Générale — XUD-Bank{% endblock %}
+{% block title %}Direction Générale{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -71,17 +71,13 @@
 <div class="app-shell">
     <nav class="xsidebar">
         <div class="sb-grp">
-            <a class="sb-a active" href="/direction/dashboard"><i class="bi bi-house"></i>Direction</a>
+            <a class="sb-a active" href="/direction/dashboard"><i class="bi bi-house"></i>DIRECTION</a>
         </div>
         <div class="sb-grp">
-            <div class="sb-grp-label">Gestion</div>
-            <a class="sb-a" href="/direction/users"><i class="bi bi-people"></i>Personnel</a>
-            <a class="sb-a" href="/direction/users/new"><i class="bi bi-person-plus"></i>Recruter</a>
-        </div>
-        <div class="sb-grp">
-            <div class="sb-grp-label">Rapports</div>
-            <a class="sb-a" href="/comptabilite/dashboard"><i class="bi bi-credit-card"></i>Comptes</a>
-            <a class="sb-a" href="/direction/export-pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i>Rapport</a>
+            <div class="sb-grp-label">GESTION</div>
+            <a class="sb-a" href="/direction/users/new"><i class="bi bi-person-plus"></i>RECRUTER</a>
+            <a class="sb-a" href="/direction/users"><i class="bi bi-people"></i>PERSONNEL</a>
+            <a class="sb-a" href="/direction/accounts"><i class="bi bi-safe"></i>COMPTES BANCAIRES</a>
         </div>
     </nav>
     <main class="xmain" style="display:flex;flex-direction:column;overflow:hidden;">
