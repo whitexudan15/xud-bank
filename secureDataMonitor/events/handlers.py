@@ -68,16 +68,20 @@ async def handle_failed_login(data: dict) -> None:
     Événement : LOGIN_FAILED
     Règle 1   : 3 échecs < 2 min → MEDIUM + verrouillage
     """
+    log.warning(f"[HANDLER] handle_failed_login appelé pour '{data.get('username')}' depuis {data['ip']}")
+    
     async with AsyncSessionLocal() as db:
         # Enregistre la tentative
         await detection.record_login_attempt(
             db, ip=data["ip"], username=data["username"], success=False
         )
+        log.warning(f"[HANDLER] Tentative enregistrée dans login_attempts")
 
         # Vérifie Règle 1
         brute_force = await detection.check_brute_force(
             db, username=data["username"], ip=data["ip"]
         )
+        log.warning(f"[HANDLER] check_brute_force retourne: {brute_force}")
 
         action = "Compteur échecs incrémenté"
 
@@ -93,6 +97,7 @@ async def handle_failed_login(data: dict) -> None:
         await broadcast_event(event)
 
         if brute_force:
+            log.warning(f"[HANDLER] BRUTE FORCE DÉTECTÉ - Verrouillage de '{data['username']}'")
             # Verrouillage du compte
             await detection.lock_account(db, data["username"])
             alert = await sec_logger.create_alert(
@@ -107,8 +112,10 @@ async def handle_failed_login(data: dict) -> None:
                 "username": data["username"],
                 "ip": data["ip"],
             })
+            log.warning(f"[HANDLER] Compte verrouillé avec succès")
 
         await db.commit()
+        log.warning(f"[HANDLER] Transaction commitée")
 
     log.warning(f"[LOGIN_FAILED] {data.get('username')} depuis {data['ip']}")
 

@@ -147,9 +147,12 @@ async def login(
         }))
     elif result.reason == "invalid_password":
         attempt_count = result.user.failed_attempts if result.user else 1
+        log.warning(f"[LOGIN] Échec password pour '{email}' - tentative #{attempt_count} - IP: {ip}")
         asyncio.create_task(dispatcher.emit("login_failed", {
             "ip": ip, "username": email, "attempt": attempt_count,
         }))
+
+    await db.commit()  # Commit les changements (failed_attempts incrémenté)
 
     if result.reason == "account_locked":
         error_msg = "Votre compte est verrouillé ! Contactez un Administrateur."

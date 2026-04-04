@@ -126,6 +126,8 @@ async def check_brute_force(
         )
     )
     count = result.scalar_one()
+    
+    log.warning(f"[Règle 1] check_brute_force: username='{username}', count={count}, seuil={settings.MAX_LOGIN_ATTEMPTS}, window={settings.BRUTE_FORCE_WINDOW}s")
 
     if count >= settings.MAX_LOGIN_ATTEMPTS:
         log.warning(f"[Règle 1] Brute force : {count} échecs pour '{username}' en {settings.BRUTE_FORCE_WINDOW}s")
@@ -133,10 +135,22 @@ async def check_brute_force(
     return False
 
 
-async def lock_account(db: AsyncSession, id: uuid.UUID) -> None:
-    """Verrouille un compte utilisateur (is_locked = TRUE)."""
-    result = await db.execute(select(User).where(User.id == id))
-    user = result.scalar_one_or_none()
+async def lock_account(db: AsyncSession, identifier) -> None:
+    """
+    Verrouille un compte utilisateur (is_locked = TRUE).
+    
+    Args:
+        identifier: Peut être un UUID ou un username (str)
+    """
+    # Si c'est un string (username), chercher l'user d'abord
+    if isinstance(identifier, str):
+        result = await db.execute(select(User).where(User.username == identifier))
+        user = result.scalar_one_or_none()
+    else:
+        # C'est déjà un UUID
+        result = await db.execute(select(User).where(User.id == identifier))
+        user = result.scalar_one_or_none()
+    
     if user:
         user.is_locked = True
         user.failed_attempts = settings.MAX_LOGIN_ATTEMPTS
