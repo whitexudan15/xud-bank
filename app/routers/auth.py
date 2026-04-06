@@ -76,7 +76,8 @@ async def login(
     password: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
-    ip = request.client.host
+    from app.utils import get_client_ip
+    ip = get_client_ip(request)
 
     # ── Détection SQL injection (validation centralisée) ──────
     is_violation, field, value = validate_inputs({"email": email, "password": password})

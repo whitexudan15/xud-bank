@@ -34,7 +34,8 @@ async def comptabilite_dashboard(
     from app.config import get_settings
     
     settings = get_settings()
-    ip = request.client.host
+    from app.utils import get_client_ip
+    ip = get_client_ip(request)
     username = user_data["username"]
     role = user_data["role"]
 

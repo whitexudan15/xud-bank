@@ -12,6 +12,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings, templates
+from app.utils import get_client_ip
 from app.database import check_db_connection, close_db
 from secureDataMonitor.events.handlers import register_all_handlers
 from secureDataMonitor.services.logger import setup_file_logger, stop_file_logger
@@ -133,7 +134,7 @@ async def forbidden_handler(request: Request, exc):
     # Monitoring des accès non autorisés aux zones sensibles
     if request.url.path.startswith(("/soc", "/direction", "/comptabilite")):
         await dispatcher.emit("unauthorized", {
-            "ip": request.client.host,
+            "ip": get_client_ip(request),
             "username": username,
             "role": role,
             "path": request.url.path,
@@ -142,7 +143,7 @@ async def forbidden_handler(request: Request, exc):
     # Règle 7 : Tentative de vol de dossiers bancaires
     if check_unauthorized_report_access(request.url.path, role):
         await dispatcher.emit("bank_fraud_attempt", {
-            "ip": request.client.host,
+            "ip": get_client_ip(request),
             "username": username,
             "role": role,
             "path": request.url.path,
@@ -179,7 +180,7 @@ async def not_found_handler(request: Request, exc):
     path = request.url.path
     if check_suspicious_url(path):
         await dispatcher.emit("suspicious_url", {
-            "ip": request.client.host,
+            "ip": get_client_ip(request),
             "url": path,
             "username": None,
         })
@@ -225,7 +226,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         if check_suspicious_url(path):
             await dispatcher.emit("suspicious_url", {
-                "ip": request.client.host,
+                "ip": get_client_ip(request),
                 "url": path,
                 "username": None,
             })

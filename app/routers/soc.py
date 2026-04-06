@@ -17,6 +17,7 @@ from sqlalchemy import select, func, and_, desc
 
 from app.database import get_db
 from app.config import get_settings
+from app.utils import get_client_ip
 from app.models.user import User
 from app.models.security_event import SecurityEvent, SeverityLevel, EventType
 from app.models.alert import Alert
@@ -541,7 +542,7 @@ async def clear_all_data(
     
     # Émet un événement avant la suppression
     await dispatcher.emit("data_cleared", {
-        "ip": request.client.host,
+        "ip": get_client_ip(request),
         "username": user_data.get("username"),
         "role": user_data.get("role"),
         "action": "clear_all_alerts_and_events",
